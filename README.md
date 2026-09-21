@@ -153,23 +153,23 @@ URL 就是文件名去掉 `.md`，所以文件名一旦定下来**尽量别改**
 本地已经全部就绪：git 仓库已初始化、分支是 `main`、首次提交已完成
 （39 个文件），`.github/workflows/deploy.yml` 会在推送到 `main` 时自动构建并发布。
 
-**站点地址已设为 `https://weixuannote.github.io`**（用户主页仓库方案，
+**站点地址已设为 `https://wx-blog.github.io`**（用户主页仓库方案，
 `astro.config.mjs` 的 `site` 与 `src/consts.ts` 的 `SITE.url` 两处已同步）。
 
 ### 你还需要做的三步
 
-**第 1 步：注册 GitHub，用户名必须是 `weixuannote`**
+**第 1 步：注册 GitHub，用户名是 `wx-blog`**
 
-网址就是用户名，没有別的设置。所以注册时**用户名必须填 `weixuannote`**
+网址就是用户名，没有別的设置。所以注册时**用户名是 `wx-blog`**
 （已查过，未被占用）。用别的用户名，网址就会跟着变。
 
-**第 2 步：建一个仓库，名字必须是 `weixuannote.github.io`**
+**第 2 步：建一个仓库，名字必须是 `wx-blog.github.io`**
 
 这是 GitHub 的特殊约定：仓库名和用户名同名 + 后缀 `.github.io`，才会生成用户主页站点，
-网址才是干净的 `https://weixuannote.github.io`（不带任何路径）。
+网址才是干净的 `https://wx-blog.github.io`（不带任何路径）。
 
 > 千万不要建一个叫 `blog` 的仓库——那样网址会变成
-> `weixuannote.github.io/blog`，站内所有绝对链接都会 404。
+> `wx-blog.github.io/blog`，站内所有绝对链接都会 404。
 
 仓库建好后先**不要**勾选 README / .gitignore 初始化，保持空仓库。
 
@@ -178,7 +178,7 @@ URL 就是文件名去掉 `.md`，所以文件名一旦定下来**尽量别改**
 在 `output\blog` 目录下执行（把中文路径换成你的实际路径）：
 
 ```bash
-git remote add origin https://github.com/weixuannote/weixuannote.github.io.git
+git remote add origin https://github.com/wx-blog/wx-blog.github.io.git
 git push -u origin main
 ```
 
@@ -211,7 +211,7 @@ GitHub Actions 的服务器在海外，下载没问题。
 
 ### 换成完全自定义的域名
 
-`weixuannote.github.io` 已经是你自己的网址，但如果你想要 `weixuannote.com`
+`wx-blog.github.io` 已经是你自己的网址，但如果你想要 `wx-blog.com`
 这种完全自主的域名，见下面一节。
 
 ## 换成自己的域名（可选）
@@ -222,7 +222,7 @@ GitHub Pages 就是那个能绑域名的地方。
 
 | 你想要的地址 | 需要做什么 | 花费 |
 | --- | --- | --- |
-| `weixuannote.github.io` | 已完成 | 0 |
+| `wx-blog.github.io` | 已完成 | 0 |
 | `blog.example.com` | 买域名 + 1 条 CNAME 记录 | 域名费 |
 | `example.com` | 买域名 + 4 条 A + 4 条 AAAA + www 的 CNAME | 域名费 |
 
