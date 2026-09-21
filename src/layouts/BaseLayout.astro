@@ -1,0 +1,157 @@
+---
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import Backdrop from '../components/Backdrop.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE } from '../consts';
+
+interface Props {
+  /** 页面标题，会拼在站点名前面 */
+  title?: string;
+  description?: string;
+  /** og:type */
+  type?: 'website' | 'article';
+}
+
+const { title, description = SITE.description, type = 'website' } = Astro.props;
+
+const pageTitle = title ? `${title} · ${SITE.title}` : `${SITE.title} · ${SITE.tagline}`;
+const siteUrl = Astro.site?.href ?? SITE.url;
+const canonical = new URL(Astro.url.pathname, siteUrl).href;
+const rssHref = new URL('rss.xml', siteUrl).href;
+const ogImage = new URL('og-default.png', siteUrl).href;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href={rssHref} />
+    <meta name="author" content={SITE.author} />
+
+    {/* 自托管字体子集，提前拉取，避免中文标题先以回退字体渲染再跳一下 */}
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/noto-sans-sc.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin.woff2" crossorigin />
+
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE.title} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:locale" content="zh_CN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content={ogImage} />
+
+    <ClientRouter />
+
+    {/* 无闪烁主题初始化：必须在样式生效前跑，所以放 is:inline */}
+    <script is:inline>
+      (() => {
+        try {
+          const saved = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = saved ?? (prefersDark ? 'dark' : 'light');
+        } catch {
+          document.documentElement.dataset.theme = 'light';
+        }
+        // 标记 JS 可用：滚动进入动效只在有 JS 时才隐藏元素
+        document.documentElement.classList.add('js');
+      })();
+    </script>
+  </head>
+
+  <body>
+    <Backdrop />
+
+    <a class="skip-link" href="#main">跳到正文</a>
+
+    <Header />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    {/* 页头细线 / 滚动进入 / 目录高亮。挂在 window 上，避免视图过渡时重复绑定。 */}
+    <script is:inline>
+      (() => {
+        if (!window.__zx) {
+          const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          let io = null;
+          let ticking = false;
+
+          const spy = () => {
+            const links = document.querySelectorAll('.toc a[href^="#"]');
+            if (!links.length) return;
+            let activeId = '';
+            for (const a of links) {
+              const el = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+              if (el && el.getBoundingClientRect().top <= 130) {
+                activeId = decodeURIComponent(a.hash.slice(1));
+              }
+            }
+            for (const a of links) {
+              a.classList.toggle('is-active', decodeURIComponent(a.hash.slice(1)) === activeId);
+            }
+          };
+
+          const onScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(() => {
+              ticking = false;
+              const header = document.querySelector('.site-header');
+              if (header) header.classList.toggle('is-scrolled', window.scrollY > 8);
+              spy();
+            });
+          };
+
+          const setup = () => {
+            onScroll();
+            if (reduce) {
+              for (const el of document.querySelectorAll('[data-reveal]')) el.classList.add('is-in');
+              return;
+            }
+            if (!io) {
+              io = new IntersectionObserver(
+                (entries) => {
+                  for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                      entry.target.classList.add('is-in');
+                      io.unobserve(entry.target);
+                    }
+                  }
+                },
+                { rootMargin: '0px 0px -6% 0px', threshold: 0.04 },
+              );
+            }
+            document.querySelectorAll('[data-reveal]:not(.is-in)').forEach((el, i) => {
+              // 同屏的卡片错开一点点入场，顺序感来自这里
+              el.style.setProperty('--d', `${Math.min(i % 4, 3) * 0.07}s`);
+              io.observe(el);
+            });
+          };
+
+          window.addEventListener('scroll', onScroll, { passive: true });
+          window.__zx = { setup };
+          document.addEventListener('astro:page-load', setup);
+        }
+        window.__zx.setup();
+      })();
+    </script>
+  </body>
+</html>

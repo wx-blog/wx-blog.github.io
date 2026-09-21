@@ -1,0 +1,106 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedPosts } from '../utils/posts';
+import { SITE } from '../consts';
+
+const posts = await getPublishedPosts();
+---
+
+<BaseLayout title="关于" description={`关于 ${SITE.title} 和它的作者。`}>
+  <div class="wrap">
+    <header class="page-hero">
+      <p class="page-hero__eyebrow" data-reveal>ABOUT</p>
+      <h1 class="page-hero__title" data-reveal style="--d:.05s">
+        一个用来存放笔记的地方。
+      </h1>
+      <p class="page-hero__lede" data-reveal style="--d:.12s">
+        目前有 {posts.length} 篇。不追热点，只写自己真跑过、真踩过的那些东西。
+      </p>
+    </header>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>为什么写</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">
+            写下来的过程，会逼你把「大概是这样」变成「确实是这样」。
+          </h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <p>有些问题查一次就够，但我总是要查第二次、第三次。所以干脆写下来——写的过程会把含糊的印象逼成确切的步骤，把没法复现的操作变成能直接贴进终端的命令。</p>
+            <p>这里的标准只有一条：<strong>能复现</strong>。写糙一点没关系，结论对、命令能跑通就行。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>写什么</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">四个方向</h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <ul>
+              <li><strong>Linux 与运维</strong>——RHEL / Rocky、Ansible、HAProxy、存储与文件系统，以及 RHCSA / RHCE 备考路上的整理</li>
+              <li><strong>Kubernetes 与混沌工程</strong>——集群搭建、故障注入，以及怎么把「自愈能力」这件事量化出来</li>
+              <li><strong>虚拟化与实验环境</strong>——Proxmox VE、Ceph，在自己的服务器上复现一套像样的验证环境</li>
+              <li><strong>项目与学习记录</strong>——毕设、大创项目推进过程中的踩坑与复盘</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>关于我</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">张炜轩</h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <p>天津农学院软件工程专业，2027 年毕业。持 RHCA 认证。平时折腾 Linux 和集群，喜欢那种「先把环境搭起来，再想办法让它出故障」的过程。</p>
+            <p>比起背结论，我更信自己动手跑一遍——同一套命令在别人的机器上跑不通，往往不是命令本身的问题。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>关于这个站</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">
+            手写的样式，能删的都删了。
+          </h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <p>用 <a href="https://astro.build" rel="noopener">Astro</a> 构建，纯静态输出。没有 UI 框架，样式全部手写，页面上唯一的一段脚本负责深色模式切换和滚动入场。</p>
+            <p>几个自己比较满意的细节：</p>
+            <ul>
+              <li><strong>中文字体做了子集化</strong>——思源黑体全字库 17MB，按站点实际用字裁剪后只剩 300 多 KB，首屏不用等字体</li>
+              <li><strong>封面图是代码算出来的</strong>——按文章 ID 生成，零素材、零版权，风格天然统一</li>
+              <li><strong>字体全部本地托管</strong>，不依赖任何第三方 CDN，国内访问不会卡在字体上</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="outro">
+      <div class="outro__box" data-reveal>
+        <h2 class="outro__title">有想聊的？</h2>
+        <p class="outro__text">指正文里的错误、聊技术，或者只是想打个招呼，都可以在 GitHub 上找到我。</p>
+        <div class="pill-group">
+          {
+            SITE.social.map((item) => (
+              <a
+                class:list={['btn', item.href.startsWith('http') ? 'btn--solid' : 'btn--ghost']}
+                href={item.href}
+                rel={item.href.startsWith('http') ? 'noopener' : undefined}
+              >
+                {item.label}
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

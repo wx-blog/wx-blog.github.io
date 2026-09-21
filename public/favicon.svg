@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="知行笔记">
+  <rect width="32" height="32" rx="7.5" fill="#1f6f63" />
+  <g stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" fill="none">
+    <path d="M7.5 10h12" />
+    <path d="M14.5 10 10 22" />
+    <rect x="17.5" y="16.5" width="7.5" height="7.5" rx="1.4" stroke-width="2.3" />
+  </g>
+</svg>

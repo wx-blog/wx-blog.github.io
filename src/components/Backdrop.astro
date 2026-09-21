@@ -1,0 +1,22 @@
+---
+/**
+ * 全局背景层。极光 + 技术网格 + 胶片颗粒，三层纯 CSS，零图片素材。
+ *
+ * 为什么要单独抽一层、还固定定位：
+ * 极光必须相对视口静止，页面滚动时光晕才像"房间里的光"而不是贴纸；
+ * 顺带也省掉了每次滚动重绘一大片渐变。
+ *
+ * 三层各司其职：
+ *   aurora —— 提供颜色与纵深，"科幻感"的来源
+ *   beam   —— 顶部一束冷光，把视线压向首屏标题
+ *   grid   —— 只在上方可见的技术底纹，工程感
+ * 颗粒单独放 body 的最后一层（z-index 最高），是为了让它像胶片一样覆盖全画面。
+ */
+---
+
+<div class="backdrop" aria-hidden="true">
+  <div class="backdrop__aurora"></div>
+  <div class="backdrop__beam"></div>
+  <div class="backdrop__grid"></div>
+</div>
+<div class="grain" aria-hidden="true"></div>

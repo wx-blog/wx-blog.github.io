@@ -1,0 +1,29 @@
+---
+import PostCard from './PostCard.astro';
+import type { Post } from '../utils/posts';
+
+interface Props {
+  posts: Post[];
+  /** 首篇做成整行大卡片 */
+  featureFirst?: boolean;
+  showTags?: boolean;
+}
+
+const { posts, featureFirst = false, showTags = true } = Astro.props;
+---
+
+{
+  posts.length === 0 ? (
+    <p class="empty">还没有文章。</p>
+  ) : (
+    <div class="card-grid">
+      {posts.map((post, i) => (
+        <PostCard
+          post={post}
+          feature={featureFirst && i === 0}
+          showTags={showTags}
+        />
+      ))}
+    </div>
+  )
+}

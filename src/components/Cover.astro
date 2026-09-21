@@ -1,0 +1,230 @@
+---
+/**
+ * 程序化封面。零素材、零版权、风格绝对统一。
+ *
+ * 同一个 seed 永远得到同一张图；构图和配色由 seed 的哈希决定，
+ * 所以文章加了删了、顺序变了，已有文章的封面都不会跟着变。
+ *
+ * 六套配色都是深色底 + 一个亮色，保证混在列表里时整片看起来是一套的。
+ */
+interface Props {
+  /** 稳定种子，一般传文章 id */
+  seed: string;
+  /** 无障碍标题，一般传文章标题 */
+  title?: string;
+  /**
+   * 画幅。列表卡片用默认 16:9；
+   * 首页首篇那种整行大卡片用 21:9 更稳，不会在页面上堆出太高的色块；
+   * 文章头图用 3:1——宽幅才像电影条，16:9 铺满 74rem 会有 660px 高，太占地方。
+   */
+  ratio?: '16:9' | '21:9' | '3:1' | '4:3';
+}
+
+const { seed, title = '文章封面', ratio = '16:9' } = Astro.props;
+
+const W = 1200;
+const H =
+  ratio === '3:1'
+    ? 400
+    : ratio === '21:9'
+      ? 514
+      : ratio === '4:3'
+        ? 900
+        : 675;
+
+/* FNV-1a：小、快、分布够用 */
+function hash32(str: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+const seedNum = hash32(seed);
+const uid = seedNum.toString(36);
+
+/* xorshift32：让同一个 seed 内部的各个参数也各自确定 */
+let state = seedNum || 0x9e3779b9;
+function rnd(): number {
+  state ^= state << 13;
+  state >>>= 0;
+  state ^= state >>> 17;
+  state ^= state << 5;
+  state >>>= 0;
+  return state / 4294967296;
+}
+
+const INKS = [
+  { a: '#0d1f1c', b: '#07120f', line: '#5fd0ba', accent: '#5fd0ba' },
+  { a: '#12172b', b: '#080c18', line: '#8fa4ff', accent: '#8fa4ff' },
+  { a: '#1f1020', b: '#120814', line: '#e39bd8', accent: '#e39bd8' },
+  { a: '#161c10', b: '#0b0f07', line: '#a8d17f', accent: '#a8d17f' },
+  { a: '#1d1d1f', b: '#0f0f11', line: '#c7c7cc', accent: '#a1a1a6' },
+  { a: '#23120c', b: '#150a06', line: '#f0997b', accent: '#f0997b' },
+];
+
+const ink = INKS[seedNum % INKS.length];
+const variant = (seedNum >>> 4) % 6;
+
+/**
+ * 构图尺度不能直接用 H。
+ * 3:1 的宽幅 H 只有 400，而 W 依然是 1200——照 H 算出来的圆和方框会缩小一半，
+ * 缩在画面正中显得很空。给它一个下限，扁画幅里的图形才撑得开。
+ * 16:9（H=675）、21:9（H=514）、4:3（H=900）都大于 W*0.42，所以取值不变，
+ * 已有封面不会因为这个改动而变形。
+ */
+const K = Math.max(H, W * 0.42);
+
+let art = '';
+
+if (variant === 0) {
+  /* 同心圆：视线从右侧的圆心向外扩散 */
+  const cx = Math.round(W * 0.7 + rnd() * W * 0.1);
+  const cy = Math.round(H * 0.44 + rnd() * H * 0.12);
+  const rings = [0.19, 0.35, 0.52, 0.71, 0.93];
+  art = rings
+    .map(
+      (k, i) =>
+        `<circle cx="${cx}" cy="${cy}" r="${(K * k).toFixed(1)}" fill="none" stroke="${ink.line}" stroke-width="3" opacity="${(0.44 - i * 0.055).toFixed(3)}"/>`,
+    )
+    .join('');
+  art += `<circle cx="${cx}" cy="${cy}" r="${(K * 0.028).toFixed(1)}" fill="${ink.accent}" opacity="0.9"/>`;
+} else if (variant === 1) {
+  /* 竖条丛：一根根立起来，其中一根是亮色 */
+  const n = 9;
+  const barW = W * 0.038;
+  const gap = W * 0.098;
+  const x0 = W * 0.075;
+  const base = H * 0.88;
+  const maxBh = H * 0.74; // 别让扁画幅里的柱子顶出画面
+  const accentIdx = Math.floor(rnd() * n);
+  for (let i = 0; i < n; i++) {
+    const bh = Math.min(maxBh, K * (0.16 + rnd() * 0.58));
+    const isAcc = i === accentIdx;
+    art += `<rect x="${(x0 + i * gap).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="6" fill="${isAcc ? ink.accent : ink.line}" opacity="${isAcc ? 0.95 : (0.2 + (i % 3) * 0.1).toFixed(3)}"/>`;
+  }
+} else if (variant === 2) {
+  /* 点阵：大小和亮度沿对角线递增，整片点读起来像一道斜向的渐变 */
+  const cols = 13;
+  const rows = 7;
+  const x0 = W * 0.075;
+  const y0 = H * 0.15;
+  const stepX = W * 0.07;
+  const stepY = H * 0.118;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const t = (r + c) / (rows + cols - 2);
+      const rad = 4 + rnd() * 5 + t * 3;
+      const isAcc = (r * 5 + c * 3) % 13 === 0;
+      art += `<circle cx="${(x0 + c * stepX).toFixed(1)}" cy="${(y0 + r * stepY).toFixed(1)}" r="${(isAcc ? rad + 4 : rad).toFixed(1)}" fill="${isAcc ? ink.accent : ink.line}" opacity="${isAcc ? 0.95 : (0.19 + t * 0.4).toFixed(3)}"/>`;
+    }
+  }
+} else if (variant === 3) {
+  /* 斜线束：一组平行斜线贯穿全幅，其中最粗的一条是亮色 */
+  const n = 7;
+  const accentIdx = Math.floor(rnd() * n);
+  const slope = H * 0.78;
+  for (let i = 0; i < n; i++) {
+    const x = W * 0.03 + i * W * 0.125;
+    const isAcc = i === accentIdx;
+    art += `<path d="M${x.toFixed(1)} ${H} L${(x + slope * 0.9).toFixed(1)} 0" fill="none" stroke="${isAcc ? ink.accent : ink.line}" stroke-width="${isAcc ? 6 : 3}" opacity="${isAcc ? 0.95 : 0.44}"/>`;
+  }
+} else if (variant === 4) {
+  /* 嵌套方框：一层层收进去 */
+  const cx = W * 0.5;
+  const cy = H * 0.5;
+  const basis = Math.min(K * 1.24, W * 0.72);
+  const ks = [0.22, 0.37, 0.52, 0.68, 0.85, 1];
+  art = ks
+    .map((k, i) => {
+      const bw = basis * k;
+      const bh = bw * 0.62;
+      return `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(cy - bh / 2).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="10" fill="none" stroke="${ink.line}" stroke-width="3" opacity="${(0.42 - i * 0.04).toFixed(3)}"/>`;
+    })
+    .join('');
+  // 扁画幅里这条亮线会跑到画面外，兜一个下限把它拉回来
+  const barY = Math.max(12, cy - basis * 0.31 - H * 0.04);
+  art += `<rect x="${(cx - basis / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${(W * 0.036).toFixed(1)}" height="5" rx="2.5" fill="${ink.accent}" opacity="0.9"/>`;
+} else {
+  /* 波纹：几条正弦折线横穿，其中一条是亮色 */
+  const n = 5;
+  const accentIdx = 1 + Math.floor(rnd() * (n - 1));
+  const steps = 8;
+  for (let i = 0; i < n; i++) {
+    const baseY = H * (0.19 + i * 0.155);
+    const amp = H * (0.04 + rnd() * 0.08);
+    const isAcc = i === accentIdx;
+    const pts: string[] = [];
+    for (let s = 0; s <= steps; s++) {
+      const x = W * 0.05 + (s * W * 0.9) / steps;
+      const y = baseY + Math.sin((s / steps) * Math.PI * 1.6 + i) * amp;
+      pts.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
+    }
+    art += `<polyline points="${pts.join(' ')}" fill="none" stroke="${isAcc ? ink.accent : ink.line}" stroke-width="${isAcc ? 6 : 3.5}" opacity="${isAcc ? 0.95 : 0.42}" stroke-linecap="round"/>`;
+  }
+}
+
+/* 统一的品牌记号：左上角一小段亮色短线，六套构图都有，用来串联风格 */
+art += `<rect x="${(W * 0.06).toFixed(1)}" y="${(H * 0.085).toFixed(1)}" width="${(W * 0.032).toFixed(1)}" height="4" rx="2" fill="${ink.accent}" opacity="0.95"/>`;
+
+const safeTitle = title.replace(/[<>&]/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[ch] as string);
+---
+
+<svg
+  viewBox={`0 0 ${W} ${H}`}
+  role="img"
+  aria-label={safeTitle}
+  xmlns="http://www.w3.org/2000/svg"
+  preserveAspectRatio="xMidYMid slice"
+>
+  <title>{safeTitle}</title>
+  <defs>
+    <linearGradient id={`cv${uid}`} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color={ink.a}></stop>
+      <stop offset="1" stop-color={ink.b}></stop>
+    </linearGradient>
+
+    {/* 真发光：把同一组图形模糊一份垫在底层当辉光。
+        比单纯调高透明度像样得多——发光要有"溢出来"的扩散，不能只是变亮。 */}
+    <filter id={`gl${uid}`} x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="20"></feGaussianBlur>
+    </filter>
+
+    {/* 暗角：四边压暗，中间的图形才有被光照到的感觉。
+        压到 0.34 就够——再深会把本来就细的线条一起吃掉。 */}
+    <radialGradient id={`vg${uid}`} cx="0.5" cy="0.42" r="0.78">
+      <stop offset="0.5" stop-color="#000" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#000" stop-opacity="0.34"></stop>
+    </radialGradient>
+
+    {/* 顶部一道极淡的高光，模拟屏幕受光 */}
+    <linearGradient id={`sh${uid}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.1"></stop>
+      <stop offset="0.42" stop-color="#fff" stop-opacity="0"></stop>
+    </linearGradient>
+
+    {/* 封面内部的技术网格：这一层是"工程感"最直接的来源 */}
+    <pattern id={`gd${uid}`} width="40" height="40" patternUnits="userSpaceOnUse">
+      <path
+        d="M40 0H0V40"
+        fill="none"
+        stroke={ink.line}
+        stroke-width="1"
+        opacity="0.2"></path>
+    </pattern>
+  </defs>
+
+  <rect width={W} height={H} fill={`url(#cv${uid})`}></rect>
+  <rect width={W} height={H} fill={`url(#gd${uid})`} opacity="0.55"></rect>
+
+  {/* 先模糊一层当辉光，再叠一层清晰的图形 */}
+  <g filter={`url(#gl${uid})`} opacity="0.95">
+    <Fragment set:html={art} />
+  </g>
+  <Fragment set:html={art} />
+
+  <rect width={W} height={H} fill={`url(#vg${uid})`}></rect>
+  <rect width={W} height={H} fill={`url(#sh${uid})`}></rect>
+</svg>

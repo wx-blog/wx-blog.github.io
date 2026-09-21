@@ -1,0 +1,63 @@
+---
+import Cover from './Cover.astro';
+import type { Post } from '../utils/posts';
+import { formatDate, postCode, postUrl, readingTime, tagUrl } from '../utils/posts';
+
+interface Props {
+  post: Post;
+  /** 整行大卡片，用于首页首篇 */
+  feature?: boolean;
+  showTags?: boolean;
+}
+
+const { post, feature = false, showTags = true } = Astro.props;
+
+const minutes = readingTime(post.body);
+const href = postUrl(post.id);
+---
+
+<article class:list={['card', feature && 'card--feature']} data-reveal>
+  <div class="card__cover">
+    {/* 角标压在封面上：技术编号，纯装饰，不参与点击 */}
+    <span class="card__id" aria-hidden="true">// {postCode(post.id)}</span>
+    <Cover
+      seed={post.id}
+      title={post.data.title}
+      ratio={feature ? '21:9' : '16:9'}
+    />
+  </div>
+
+  <div class="card__body">
+    <div class="card__meta">
+      <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+      <span class="card__dot">·</span>
+      <span>约 {minutes} 分钟</span>
+      {
+        post.data.updatedDate && (
+          <>
+            <span class="card__dot">·</span>
+            <span>已修订</span>
+          </>
+        )
+      }
+    </div>
+
+    <h3 class="card__title">
+      <a href={href}>{post.data.title}</a>
+    </h3>
+
+    {post.data.description && <p class="card__desc">{post.data.description}</p>}
+
+    {
+      showTags && post.data.tags.length > 0 && (
+        <div class="card__tags">
+          {post.data.tags.map((tag) => (
+            <a class="tag" href={tagUrl(tag)}>
+              {tag}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</article>

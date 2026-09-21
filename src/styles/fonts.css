@@ -1,0 +1,23 @@
+/* ==========================================================================
+   自托管字体
+   两个文件都在 public/fonts/ 下，由 scripts/subset-fonts.mjs 生成。
+   改完文章内容后跑 npm run fonts（或直接 npm run build，会自动先跑）。
+   ========================================================================== */
+
+/* 拉丁字形与非中文符号：Inter 可变字体，latin 切片约 40KB */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/inter-latin.woff2') format('woff2-variations');
+}
+
+/* 中文字形：思源黑体可变版本，按站点实际用字裁剪后的子集 */
+@font-face {
+  font-family: 'Noto Sans SC Subset';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/noto-sans-sc.woff2') format('woff2-variations');
+}

@@ -1,0 +1,129 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Cover from '../../components/Cover.astro';
+import {
+  formatDate,
+  getNeighbors,
+  getPublishedPosts,
+  postCode,
+  postUrl,
+  readingTime,
+  tagUrl,
+} from '../../utils/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { id: post.id },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const posts = await getPublishedPosts();
+const { newer, older } = getNeighbors(posts, post.id);
+const minutes = readingTime(post.body);
+
+/* 目录只收二、三级标题：一级就是文章标题，再深一层会太碎 */
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<BaseLayout title={post.data.title} description={post.data.description} type="article">
+  <div class="wrap wrap--post">
+    <article>
+      <header class="post-hero">
+        <div class="post-hero__eyebrow">
+          <span class="post-hero__code">// {postCode(post.id)}</span>
+          <span class="post-hero__dot">·</span>
+          <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+          <span class="post-hero__dot">·</span>
+          <span>约 {minutes} 分钟</span>
+          {
+            post.data.updatedDate && (
+              <>
+                <span class="post-hero__dot">·</span>
+                <span>修订于 {formatDate(post.data.updatedDate)}</span>
+              </>
+            )
+          }
+        </div>
+
+        <h1 class="post-hero__title">{post.data.title}</h1>
+
+        {post.data.description && <p class="post-hero__desc">{post.data.description}</p>}
+
+        {
+          post.data.tags.length > 0 && (
+            <div class="post-hero__tags">
+              {post.data.tags.map((tag) => (
+                <a class="tag" href={tagUrl(tag)}>
+                  {tag}
+                </a>
+              ))}
+            </div>
+          )
+        }
+      </header>
+
+      <div class="post-banner">
+        <Cover seed={post.id} title={post.data.title} ratio="3:1" />
+      </div>
+
+      <div class="post-body">
+        <div class="prose">
+          <Content />
+        </div>
+
+        {
+          toc.length > 1 && (
+            <nav class="toc" aria-label="本文目录">
+              <p class="toc__label">目录</p>
+              <ol>
+                {toc.map((h) => (
+                  <li class:list={h.depth === 3 && 'toc__lvl3'}>
+                    <a href={`#${h.slug}`}>{h.text}</a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )
+        }
+      </div>
+    </article>
+
+    <footer class="post-footer">
+      <nav class="post-nav" aria-label="文章导航">
+        {
+          older ? (
+            <a class="post-nav__link" href={postUrl(older.id)}>
+              <span class="post-nav__label">更早一篇</span>
+              <span class="post-nav__title">{older.data.title}</span>
+            </a>
+          ) : (
+            <span class="post-nav__link post-nav__empty">
+              <span class="post-nav__label">更早一篇</span>
+              <span class="post-nav__title">没有更早的了</span>
+            </span>
+          )
+        }
+
+        {
+          newer ? (
+            <a class="post-nav__link post-nav__link--next" href={postUrl(newer.id)}>
+              <span class="post-nav__label">更新一篇</span>
+              <span class="post-nav__title">{newer.data.title}</span>
+            </a>
+          ) : (
+            <span class="post-nav__link post-nav__link--next post-nav__empty">
+              <span class="post-nav__label">更新一篇</span>
+              <span class="post-nav__title">这是最新一篇</span>
+            </span>
+          )
+        }
+      </nav>
+    </footer>
+  </div>
+</BaseLayout>

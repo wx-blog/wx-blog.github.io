@@ -1,0 +1,29 @@
+---
+import { SITE } from '../consts';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="site-footer__inner">
+      <p class="site-footer__note">
+        © {year} {SITE.author} · 本站文章采用
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="noopener">
+          CC BY-NC-SA 4.0
+        </a>
+        许可，转载请注明出处。用 <a href="https://astro.build" rel="noopener">Astro</a> 构建，纯静态输出。
+      </p>
+
+      <div class="site-footer__links">
+        {
+          SITE.social.map((item) => (
+            <a href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>
+              {item.label}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</footer>

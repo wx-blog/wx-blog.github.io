@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  # main 分支有推送就自动发布
+  push:
+    branches: [main]
+  # 也支持在 Actions 页面手动触发
+  workflow_dispatch:
+
+# 只允许一个发布任务同时进行
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with Astro
+        uses: withastro/action@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import { collectTags, getPublishedPosts, tagUrl, readingTime } from '../utils/posts';
+import { SITE } from '../consts';
+
+const posts = await getPublishedPosts();
+const latest = posts.slice(0, 5);
+const tags = collectTags(posts);
+const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
+---
+
+<BaseLayout>
+  <section class="hero">
+    <div class="hero__glow" aria-hidden="true"></div>
+
+    <div class="wrap hero__inner">
+      <p class="hero__eyebrow mono-label" data-reveal>
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span>技术笔记 · 学习记录</span>
+      </p>
+
+      <h1 class="hero__title" data-reveal style="--d:.05s">
+        把踩过的坑，<br />写成<span class="grad-text">能复现</span>的笔记。
+      </h1>
+
+      <p class="hero__lede" data-reveal style="--d:.12s">
+        Linux 与运维、Kubernetes 与混沌工程，以及备考、毕设和大创路上的实验记录。写糙一点没关系，命令能跑通、结论站得住就行。
+      </p>
+
+      <div class="hero__meta" data-reveal style="--d:.2s">
+        <span><strong>{posts.length}</strong> 篇文章</span>
+        <span class="hero__dot">·</span>
+        <span><strong>{tags.length}</strong> 个标签</span>
+        <span class="hero__dot">·</span>
+        <span>累计约 <strong>{totalMinutes}</strong> 分钟阅读</span>
+        <span class="hero__dot">·</span>
+        <a href="/rss.xml">RSS 订阅</a>
+      </div>
+
+      <a class="hero__scroll mono-label" href="#latest" data-reveal style="--d:.28s">
+        scroll ↓
+      </a>
+    </div>
+
+    <div class="hud" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
+  </section>
+
+  <section class="section" id="latest">
+    <div class="wrap">
+      <div class="section__head section__head--row">
+        <p class="section__eyebrow" data-reveal>最近更新</p>
+        <h2 class="section__title" data-reveal style="--d:.05s">最新写下的几篇</h2>
+        <a class="section__more" href="/blog/">全部文章 →</a>
+      </div>
+
+      <PostList posts={latest} featureFirst />
+    </div>
+  </section>
+
+  {
+    tags.length > 0 && (
+      <section class="section">
+        <div class="wrap">
+          <div class="section__head section__head--row">
+            <p class="section__eyebrow" data-reveal>索引</p>
+            <h2 class="section__title" data-reveal style="--d:.05s">按标签找</h2>
+            <a class="section__more" href="/tags/">
+              全部标签 →
+            </a>
+          </div>
+
+          <div class="tag-cloud tag-cloud--big" data-reveal>
+            {tags.slice(0, 16).map(([tag, count]) => (
+              <a class="tag" href={tagUrl(tag)}>
+                {tag} · {count}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="outro">
+    <div class="wrap">
+      <div class="outro__box" data-reveal>
+        <h2 class="outro__title">这些笔记值不值得读？</h2>
+        <p class="outro__text">
+          标准只有一条：照着做能复现。写下的每条命令我自己跑过，踩坑的地方会写明当时的报错和最后怎么绕过去的。
+        </p>
+        <div class="pill-group">
+          <a class="btn btn--solid" href="/blog/">开始读 →</a>
+          <a class="btn btn--ghost" href="/about/">关于这个站</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
