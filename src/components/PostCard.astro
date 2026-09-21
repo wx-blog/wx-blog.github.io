@@ -1,5 +1,4 @@
 ---
-import Cover from './Cover.astro';
 import type { Post } from '../utils/posts';
 import { formatDate, postCode, postUrl, readingTime, tagUrl } from '../utils/posts';
 
@@ -16,18 +15,35 @@ const minutes = readingTime(post.body);
 const href = postUrl(post.id);
 ---
 
-<article class:list={['card', feature && 'card--feature']} data-reveal>
-  <div class="card__cover">
-    {/* 角标压在封面上：技术编号，纯装饰，不参与点击 */}
-    <span class="card__id" aria-hidden="true">// {postCode(post.id)}</span>
-    <Cover
-      seed={post.id}
-      title={post.data.title}
-      ratio={feature ? '21:9' : '16:9'}
-    />
+<!--
+  卡片 = 一整块毛玻璃，标题就在玻璃里。
+  ------------------------------------------------------------
+  早先是「上半部程序化 SVG 封面图 / 下半部标题 + 描述」的两段式。
+  问题在于：封面图虽然每篇配色不同，但它终究是**与内容无关的装饰**，
+  占掉了卡片一半面积却不传递任何信息；而真正的信息（标题）
+  被压在图下面，反而要往下找。
+
+  现在的做法是让**标题本身成为封面**：
+  整张卡复用全站的 .glass 材质（与首屏数据条、方向卡同一套语言），
+  标题作为视觉主体直接排在玻璃里，编号角标压在角落。
+  卡片的辨识度从"封面图配色"转移到"排版本身"——
+  这也是极简风的常规做法：靠层级和留白区分，不靠图案。
+-->
+<article
+  class:list={['card', 'glass', 'glass--hover', feature && 'card--feature']}
+  data-reveal
+>
+  <span class="card__id" aria-hidden="true">// {postCode(post.id)}</span>
+
+  <div class="card__head">
+    <h3 class="card__title">
+      <a href={href}>{post.data.title}</a>
+    </h3>
   </div>
 
   <div class="card__body">
+    {post.data.description && <p class="card__desc">{post.data.description}</p>}
+
     <div class="card__meta">
       <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
       <span class="card__dot">·</span>
@@ -41,12 +57,6 @@ const href = postUrl(post.id);
         )
       }
     </div>
-
-    <h3 class="card__title">
-      <a href={href}>{post.data.title}</a>
-    </h3>
-
-    {post.data.description && <p class="card__desc">{post.data.description}</p>}
 
     {
       showTags && post.data.tags.length > 0 && (

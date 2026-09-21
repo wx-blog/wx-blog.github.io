@@ -3423,3 +3423,161 @@ a.tag:hover {
   }
 }
 
+/* ==========================================================================
+   27. 文章卡片：整卡毛玻璃，标题就是封面
+
+   用户的要求（原话）：
+   「直接把标题写进上面的框里，也是毛边玻璃的感觉，
+     不要上面是个图片，下面是标题了」
+
+   改前的结构是两段式：
+     .card__cover  —— 一张程序化生成的 SVG 封面图（16:9）
+     .card__body   —— 标题 + 描述 + meta + 标签
+
+   为什么这个结构不好（不只是审美问题）：
+     封面虽然每篇配色不同，但它**不传递任何信息**——同一套 6 种构图
+     轮换着用，读者看第二屏就分不出哪张是哪篇。占了卡片一半面积，
+     却把真正的信息（标题）挤到图下面，视线要多走一步。
+
+   改成：**让标题本身成为封面**。
+     · 整张卡复用全站的 .glass 材质——和首屏数据条、技术方向卡
+       是同一套语言，不再有"封面图 + 玻璃卡"两种材质打架；
+     · 标题排进玻璃里、作为视觉主体，编号角标压右上角；
+     · 卡片之间的辨识度从"封面图案"转移到**排版层级**上。
+       这是极简风的常规做法：靠层级和留白区分，不靠图案。
+
+   实现上只加类名、不重写材质：HTML 里给 article 加了
+   `glass glass--hover`，玻璃的底/模糊/边框/阴影/悬停位移全部复用。
+   本节只补**布局与排版**，避免又出现一套独立的玻璃数值。
+   ========================================================================== */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(1.25rem, 1rem + 1vw, 1.7rem);
+  border-radius: 1.1rem;
+  color: inherit;
+  /* 把玻璃卡内部的层叠收成一个，方便控制热区与标签的先后 */
+  isolation: isolate;
+}
+
+/* 角标：压在右上角。用等宽字体 + 低对比度，像仪器上的批号 */
+.card__id {
+  position: absolute;
+  top: clamp(0.9rem, 0.8rem + 0.5vw, 1.2rem);
+  right: clamp(1rem, 0.9rem + 0.5vw, 1.45rem);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* 头部＝标题区。
+   ⚠️ min-height 用 em 而不是 px：它要跟着字号缩放，
+   而且给标题留出至少两行的高度，让同一行卡片的正文起点大致齐平。 */
+.card__head {
+  display: flex;
+  flex-direction: column;
+  min-height: 3.2em;
+  /* 右侧留出角标的位置，避免长标题和 // 编号撞上 */
+  padding-right: 3.5rem;
+}
+
+.card__title {
+  margin: 0;
+  font-size: clamp(1.0625rem, 0.98rem + 0.55vw, 1.3125rem);
+  font-weight: 600;
+  line-height: 1.34;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+  transition: color 0.25s var(--ease);
+}
+
+/* 悬停时标题提亮一档。用 accent-hover 而不是 accent：
+   玻璃卡本身已经提过亮度，再用浅一档的色才不会被背景吃掉。 */
+.card:hover .card__title {
+  color: var(--accent-hover);
+}
+
+/* 正文区：描述 + meta + 标签。
+   margin-top: auto 把它们推到卡片底部——同一行卡片高度由最高的那张
+   决定，短内容的卡片底部对齐，比"内容悬在半空"整齐得多。 */
+.card__body {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  margin-top: auto;
+  padding-top: clamp(0.85rem, 0.7rem + 0.6vw, 1.15rem);
+}
+
+/* 描述限 3 行。
+   这是让卡片高度接近一致的关键：描述长度天然参差，
+   不限制的话网格里会出现明显的高矮差。 */
+.card__desc {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+/* meta 与标签保持原有样式，只补一层层级，
+   保证它们始终在整卡热区（.card__title a::after）之上、可单独点击。 */
+.card__meta,
+.card__tags {
+  position: relative;
+  z-index: 1;
+}
+
+/* 首篇大卡：整行，标题放大到接近首屏标题的量级 */
+.card--feature {
+  grid-column: 1 / -1;
+  border-radius: 1.35rem;
+  padding: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem);
+}
+
+.card--feature .card__head {
+  min-height: 0;
+  padding-right: 4.5rem;
+}
+
+.card--feature .card__title {
+  font-size: clamp(1.5rem, 1.1rem + 1.7vw, 2.35rem);
+  line-height: 1.2;
+  letter-spacing: -0.028em;
+  max-width: 26ch;
+}
+
+.card--feature .card__desc {
+  font-size: 1rem;
+  max-width: 62ch;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* 窄屏：卡片变成单列后不再需要"两行标题的高度"这个约束，
+   否则内容短的卡片会空出一大块。 */
+@media (max-width: 34rem) {
+  .card__head {
+    min-height: 0;
+  }
+  .card__desc {
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+  }
+}
+
+/* ---------- 以下为改版后不再使用的旧封面样式（保留说明，便于回溯） ----------
+   .card__cover / .card__cover svg / .card:hover .card__cover svg
+   / .card__cover::after / .card:hover .card__cover::after
+   —— 这些规则随「封面图」一起失效了。没有删除是因为 Cover.astro
+   仍在文章详情页（post hero）使用，万一回退卡片设计还能直接复用。
+   残留规则不会生效：DOM 里已经没有 .card__cover 元素了。 */
+
