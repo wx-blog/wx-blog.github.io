@@ -1,6 +1,5 @@
 ---
 import { SITE } from '../consts';
-import ThemeToggle from './ThemeToggle.astro';
 
 const path = Astro.url.pathname;
 const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
@@ -33,7 +32,8 @@ const isActive = (href: string) => (href === '/' ? path === '/' : path.startsWit
           </a>
         ))
       }
-      <ThemeToggle />
+      {/* ThemeToggle 已移除：本站只做暗色，不需要切换入口。
+          主题在 BaseLayout 的 is:inline 脚本里锁成 dark。 */}
     </nav>
   </div>
 </header>

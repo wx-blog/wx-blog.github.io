@@ -57,18 +57,56 @@ const ogImage = new URL('og-default.png', siteUrl).href;
 
     <ClientRouter />
 
-    {/* 无闪烁主题初始化：必须在样式生效前跑，所以放 is:inline */}
+    {/* 主题：本站**只做暗色**，不做亮色主题。
+        ------------------------------------------------------------
+        原先的逻辑是「读 localStorage → 没有就跟系统偏好」，
+        并且支持亮/暗切换。现在直接锁成 dark：
+
+        · 不读 localStorage —— 免得老访客的 'light' 存储值
+          把页面拉回已经不再维护的亮色样式（那套配色的
+          对比度是按旧的亮色场景调的，现在没有场景了）。
+        · 不看系统偏好 —— 用户在浅色系统的浏览器里打开，
+          看到的也应该是暗色。
+        · 顺手把可能残留的 localStorage 清掉，
+          避免以后万一恢复双主题时被旧的脏值干扰。
+
+        仍然放在 is:inline 且在所有样式之前执行，
+        否则会出现"先亮一下再变暗"的闪烁。 */}
     <script is:inline>
       (() => {
+        document.documentElement.dataset.theme = 'dark';
         try {
-          const saved = localStorage.getItem('theme');
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.dataset.theme = saved ?? (prefersDark ? 'dark' : 'light');
+          localStorage.removeItem('theme');
         } catch {
-          document.documentElement.dataset.theme = 'light';
+          /* 隐私模式下 localStorage 可能不可用，忽略即可 */
         }
         // 标记 JS 可用：滚动进入动效只在有 JS 时才隐藏元素
         document.documentElement.classList.add('js');
+
+        /* 首屏入场（从远到近）：在这里挂"初始态"类，而不是在页面底部。
+           ------------------------------------------------------------
+           ⚠️ **必须放在 head、必须早于样式生效**，否则会闪一下：
+           如果等 body 底部再挂，浏览器已经按"最终态"渲染过一帧了，
+           然后类一挂又跳回"远处"再推近——用户会看到文字先到眼前、
+           再缩回去、再推过来，比不做动画还糟。
+
+           放在 head 的这段脚本执行时，DOM 里还没有 body 内容，
+           样式也还没应用到 .hero 上，所以"从远处开始"是第一帧就成立的。
+
+           ⚠️ 减少动态效果时**直接不加类**（元素停在 CSS 默认的最终态），
+           而不是"把时长调成 0"——后者仍会走一遍过渡管线。
+
+           只有首页有 .hero，但这里不做判断：类挂在 <html> 上，
+           没有 .hero 的页面自然匹配不到任何规则，零成本。 */
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.documentElement.classList.add('is-entering');
+          // 首帧之后再移除 —— 浏览器需要先认下初始态，过渡才会播
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              document.documentElement.classList.remove('is-entering');
+            });
+          });
+        }
       })();
     </script>
   </head>
@@ -147,10 +185,75 @@ const ogImage = new URL('og-default.png', siteUrl).href;
           };
 
           window.addEventListener('scroll', onScroll, { passive: true });
-          window.__zx = { setup };
-          document.addEventListener('astro:page-load', setup);
+
+          /**
+           * 给正文里每个代码块装上工具条：语言标签 + 复制按钮。
+           *
+           * 为什么不在 Markdown/Astro 层面生成：
+           * Shiki 输出的是纯 <pre><code>，要在构建期插 DOM 得改整个渲染管线，
+           * 成本高且脆弱。运行时挂载只要几十行，还能天然兼容视图过渡
+           * （astro:page-load 会在每次换页后重跑）。
+           *
+           * 语言名从 Shiki 写在 <pre> 上的 data-language 取，不再猜。
+           */
+          const enhanceCode = () => {
+            const blocks = document.querySelectorAll('.prose pre');
+            for (const pre of blocks) {
+              if (pre.dataset.enhanced === '1') continue;
+              pre.dataset.enhanced = '1';
+
+              // Shiki 用 data-language 标了语言；没有就不显示标签
+              const lang = pre.getAttribute('data-language') || '';
+              const shell = document.createElement('div');
+              shell.className = 'code-shell';
+
+              const bar = document.createElement('div');
+              bar.className = 'code-bar';
+
+              const label = document.createElement('span');
+              label.className = 'code-bar__lang';
+              label.textContent = lang || 'text';
+              bar.appendChild(label);
+
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'code-bar__copy';
+              btn.textContent = '复制';
+              btn.setAttribute('aria-label', '复制这段代码');
+              bar.appendChild(btn);
+
+              // 把 pre 包进容器，工具条就能贴着它定位
+              pre.parentNode.insertBefore(shell, pre);
+              shell.appendChild(bar);
+              shell.appendChild(pre);
+
+              btn.addEventListener('click', async () => {
+                const code = pre.querySelector('code');
+                const text = code ? code.innerText : pre.innerText;
+                try {
+                  await navigator.clipboard.writeText(text);
+                  btn.textContent = '已复制';
+                  btn.classList.add('is-done');
+                } catch {
+                  // 非安全上下文或用户拒绝授权时的兜底
+                  btn.textContent = '复制失败';
+                }
+                setTimeout(() => {
+                  btn.textContent = '复制';
+                  btn.classList.remove('is-done');
+                }, 1600);
+              });
+            }
+          };
+
+          window.__zx = { setup, enhanceCode };
+          document.addEventListener('astro:page-load', () => {
+            setup();
+            enhanceCode();
+          });
         }
         window.__zx.setup();
+        window.__zx.enhanceCode();
       })();
     </script>
   </body>

@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { unified } from '@astrojs/markdown-remark';
 import remarkCjkSpacing from './remark-cjk-spacing.mjs';
+import remarkCallout from './remark-callout.mjs';
 
 /**
  * 站点根地址，canonical / RSS / sitemap 都依赖它。
@@ -26,7 +27,7 @@ export default defineConfig({
     // Astro 7 默认换成了 Sätteri 处理器，它不支持 remark 插件；
     // 这里显式用回 unified，好挂自己的中文折行处理（见 remark-cjk-spacing.mjs）
     processor: unified({
-      remarkPlugins: [remarkCjkSpacing],
+      remarkPlugins: [remarkCjkSpacing, remarkCallout],
     }),
     shikiConfig: {
       // 亮/暗双主题，配合 global.css 里的 .astro-code 规则切换

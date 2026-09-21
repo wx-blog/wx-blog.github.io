@@ -1,7 +1,7 @@
 /* ==========================================================================
    知行笔记 — 全局样式
-   视觉取向：大字号、大留白、单色为主 + 唯一强调色、克制的动效。
-   排版节奏参考产品页：每个区块 = 小标签 + 大标题 + 一句话，然后才是内容。
+   视觉取向：冷蓝灰的宇宙尺度感 + 大留白 + 唯一暖色点缀（地平线）。
+   排版节奏参考技术手册：小标签 + 大标题 + 一句话，然后才是内容。
    ========================================================================== */
 
 /* --- 1. 字体（自托管子集，见 scripts/subset-fonts.mjs） -------------------- */
@@ -10,64 +10,195 @@
 
 /* --- 2. 设计令牌 ---------------------------------------------------------- */
 
+/*
+  配色逻辑（改色之前先读这段）：
+
+  - 主调是**冷蓝灰**，不是青绿。天空、平原、雾全部落在这个色域里。
+  - **暖色只有一处**：地平线那条光带。它承担全部视觉焦点，
+    所以别在别处再引入暖色，否则焦点就散了。
+  - 强调色（--accent）取冷青蓝，和场景同一个色域、但更亮更饱和，
+    这样按钮和链接既醒目又不破坏整体冷调。
+  - 亮色主题 = 「白昼高原」：天空是冷白，地平线是淡淡的暖。
+  - 暗色主题 = 「夜色星野」：天空近黑带蓝，地平线暖光更亮、对比更强。
+
+  场景色（--scene-*）由 Horizon.astro 消费，改这里就能换整幅画。
+*/
 :root {
-  /* 亮色为默认，深色通过 :root[data-theme="dark"] 覆盖。
-     亮色 = 干净纸张 + 极淡的极光；发光只做点缀，不做主角。 */
-  --bg: #fbfbfd;
-  --bg-subtle: #f4f5f8;
-  --bg-inset: #ecedf2;
+  /* ---------- 基础表面 ---------- */
+  --bg: #f5f7fa;
+  --bg-subtle: #eef1f6;
+  --bg-inset: #e4e9f0;
 
-  /* 半透明面板：叠在极光之上，能透出一点底色，比实心色更有层次 */
-  --surface: rgba(255, 255, 255, 0.7);
-  --surface-strong: rgba(255, 255, 255, 0.88);
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-strong: rgba(255, 255, 255, 0.9);
 
-  --text: #14161b;
-  --text-muted: #5b6270;
-  --text-faint: #838a99;
+  /* ---------- 文字 ---------- */
+  --text: #12161d;
+  --text-muted: #566070;
+  --text-faint: #7f8896;
 
-  /* 边框一律走半透明，这样叠在极光上不会出现一圈生硬的实线 */
-  --border: rgba(20, 22, 27, 0.09);
-  --border-strong: rgba(20, 22, 27, 0.17);
+  --border: rgba(18, 22, 29, 0.09);
+  --border-strong: rgba(18, 22, 29, 0.18);
 
-  --accent: #0b6b5f;
-  --accent-hover: #08554c;
-  --accent-soft: rgba(11, 107, 95, 0.09);
-  --accent-glow: rgba(53, 214, 189, 0.3);
+  /* ---------- 强调色：冷青蓝 ---------- */
+  --accent: #1f6f9c;
+  --accent-hover: #175a80;
+  --accent-soft: rgba(31, 111, 156, 0.1);
+  --accent-glow: rgba(96, 176, 224, 0.34);
   --on-accent: #ffffff;
 
-  /* 极光四色：蓝 → 紫 → 玫 → 青。只用于背景光晕与装饰，不承担语义。
-     颜色自带 alpha，每团光单独控强度——只靠一层 opacity 总闸调，
-     四团会一起变浓，最后必然糊成一整片。 */
-  --aurora-1: rgba(74, 127, 224, 0.17);
-  --aurora-2: rgba(139, 92, 214, 0.14);
-  --aurora-3: rgba(209, 99, 140, 0.11);
-  --aurora-4: rgba(42, 181, 160, 0.13);
-  --aurora-opacity: 1;
+  /* ---------- 地平线暖光：全站唯一暖色 ---------- */
+  --warm: #e8a15c;
+  --warm-soft: rgba(232, 161, 92, 0.14);
+  --warm-glow: rgba(255, 190, 120, 0.32);
 
-  /* 渐变文字专用色阶。跟极光分开定义，因为文字对对比度的要求和背景光晕完全不同：
-     亮色底上必须压暗，否则渐变字会在白底上"化掉"。 */
-  --grad-1: #0b6b5f;
-  --grad-2: #2563eb;
-  --grad-3: #7c3aed;
-  --grad-4: #c026d3;
-
-  /* 顶部技术网格：从页头往下渐隐 */
-  --grid-line: rgba(20, 22, 27, 0.05);
+  /* ---------- 雾与颗粒 ---------- */
+  --grid-line: rgba(18, 22, 29, 0.05);
   --grid-size: 56px;
+  --noise-opacity: 0.026;
+  --halo: rgba(96, 176, 224, 0.18);
 
-  /* 胶片颗粒。质感主要来自这一层——纯色块和大渐变靠它才有"物质感" */
-  --noise-opacity: 0.022;
+  /* 封面六套配色：亮色下是「白昼高原」，天顶偏冷、地面压深。
+   *
+   * ⚠️ 别把 -a / -b 调回接近纯白。天空渐变是 -b（天顶）→ -a（中部）→ -haze（近地平线），
+   * 若三者都贴在 #f5f9fd 附近，渐变区间趋近于零，整张封面会糊成一块没有层次的浅灰白
+   * ——「白昼高原」就变成了「曝光过度的白纸」。这里刻意让天顶压到 #d3ddec 一档，
+   * 保留一段看得见的冷暖过渡。 */
+  --cv-1-a: #dde6f2;
+  --cv-1-b: #d3ddec;
+  --cv-1-body: #ffffff;
+  --cv-1-haze: #a8bcd4;
+  --cv-1-warm: #e8a15c;
+  --cv-2-a: #d9e4f0;
+  --cv-2-b: #cfdbea;
+  --cv-2-body: #fdfefe;
+  --cv-2-haze: #9db5d0;
+  --cv-2-warm: #e8a878;
+  --cv-3-a: #e0e6f3;
+  --cv-3-b: #d6dfee;
+  --cv-3-body: #ffffff;
+  --cv-3-haze: #b2bbd8;
+  --cv-3-warm: #f0b070;
+  --cv-4-a: #d7e5f1;
+  --cv-4-b: #ccdcec;
+  --cv-4-body: #fcfefe;
+  --cv-4-haze: #96b8cf;
+  --cv-4-warm: #f2b478;
+  --cv-5-a: #e0e4ec;
+  --cv-5-b: #d6dbe5;
+  --cv-5-body: #ffffff;
+  --cv-5-haze: #adb5c4;
+  --cv-5-warm: #e0a068;
+  --cv-6-a: #dae6f2;
+  --cv-6-b: #d0dfee;
+  --cv-6-body: #ffffff;
+  --cv-6-haze: #a3bcd6;
+  --cv-6-warm: #f0ac7c;
 
-  /* 悬浮时的暖光晕 */
-  --halo: rgba(91, 156, 255, 0.16);
+  /* 封面里的暗角与地面压暗层（亮色下要轻得多，否则整块发黑） */
+  --cv-ground-op: 0.2;
+  --cv-vignette-op: 0.14;
+  --cv-band-op: 0.05;
+  --cv-rim-op: 0.1;
 
-  --shadow-sm: 0 1px 2px rgba(10, 12, 18, 0.05);
-  --shadow: 0 12px 34px -14px rgba(10, 12, 18, 0.16);
-  --shadow-lg: 0 34px 80px -34px rgba(10, 12, 18, 0.26);
+  /* 封面角落那串伪代码 ID（// 4BEAE5）的颜色。
+     亮色封面是浅色天空，这里的文字必须转深、阴影也要反过来（浅色光晕），
+     否则白字压在近白底上等于隐形。 */
+  --cv-id-color: rgba(24, 34, 52, 0.5);
+  --cv-id-shadow: 0 1px 10px rgba(255, 255, 255, 0.85);
 
-  /* 标题的纵向微渐变：顶部亮、底部收，制造受光感而不是纯平色。
-     落差只给 12% 左右——再多第二行就明显发灰，像没加载完。 */
-  --title-sheen: linear-gradient(180deg, #14161b 0%, rgba(20, 22, 27, 0.88) 100%);
+  /* ---------- 场景：亮色 = 白昼高原 ---------- */
+  /* 天体：冷白球面，边缘转青灰 */
+  --scene-body-1: #ffffff;
+  --scene-body-2: #dfe7f0;
+  --scene-body-3: #b9c6d6;
+  --scene-halo-in: rgba(255, 255, 255, 0.55);
+  --scene-halo-mid: rgba(168, 202, 232, 0.24);
+  --scene-halo-out: rgba(168, 202, 232, 0);
+
+  /* 天空：顶部雾蓝 → 靠近地平线转暖白 */
+  --scene-sky-1: #c3cfdd;
+  --scene-sky-2: #d8e1ea;
+  --scene-sky-3: #ece4dc;
+  --scene-sky-4: #f6e6d6;
+
+  /* 地面：压得很暗，只在地平线附近留一点反光 */
+  --scene-gnd-1: #9aa6b5;
+  --scene-gnd-2: #6b7686;
+  --scene-gnd-3: #39424f;
+  --scene-gnd-4: #232a34;
+
+  /* 地平线光带 */
+  --scene-line-a: rgba(232, 161, 92, 0);
+  --scene-line-b: rgba(255, 205, 150, 0.75);
+  --scene-line-c: rgba(255, 236, 210, 1);
+
+  /* 暖雾 */
+  --scene-warm-in: rgba(255, 210, 158, 0.5);
+  --scene-warm-mid: rgba(240, 186, 130, 0.2);
+  --scene-warm-out: rgba(240, 186, 130, 0);
+
+  /* 体积光 */
+  --scene-vol-1: rgba(255, 226, 190, 0.36);
+  --scene-vol-2: rgba(214, 226, 238, 0.14);
+  --scene-vol-3: rgba(214, 226, 238, 0);
+
+  --scene-band: rgba(255, 255, 255, 0.5);
+  --scene-band-opacity: 0.5;
+  --scene-rim: rgba(255, 255, 255, 0.9);
+  --scene-rim-shadow: rgba(120, 140, 165, 0.32);
+  --scene-groundfog: rgba(226, 234, 242, 0.62);
+  --scene-haze: rgba(240, 232, 224, 0.5);
+  --scene-fade-0: rgba(20, 26, 34, 0);
+  --scene-fade-1: rgba(20, 26, 34, 0.42);
+  --scene-fade-opacity: 0.85;
+  --scene-figure: #1b222c;
+  --scene-figure-shadow: rgba(20, 26, 34, 0.5);
+  --scene-star: #ffffff;
+
+  /* 首屏文字保护层：亮色主题下，文字在左、天体在右。
+     亮色下天空本身很亮（白昼高原），只靠一点压暗托不住白色文字，
+     所以左侧压得更实、右边界也退得更远，同时底部再补一层，
+     保证「3 篇文章 / 9 个标签」那条数据栏也读得清。 */
+  --hero-scrim: linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--bg) 92%, transparent) 0%,
+      color-mix(in srgb, var(--bg) 74%, transparent) 38%,
+      color-mix(in srgb, var(--bg) 24%, transparent) 68%,
+      transparent 88%
+    ),
+    linear-gradient(
+      to top,
+      color-mix(in srgb, var(--bg) 68%, transparent) 0%,
+      transparent 42%
+    );
+
+  /* ---------- 渐变文字 ---------- */
+  --grad-1: #1f6f9c;
+  --grad-2: #4a7fc8;
+  --grad-3: #7a6fc4;
+  --grad-4: #b06a9e;
+
+  --shadow-sm: 0 1px 2px rgba(15, 20, 28, 0.05);
+  --shadow: 0 12px 34px -14px rgba(15, 20, 28, 0.18);
+  --shadow-lg: 0 34px 80px -34px rgba(15, 20, 28, 0.28);
+
+  --title-sheen: linear-gradient(180deg, #12161d 0%, rgba(18, 22, 29, 0.88) 100%);
+
+  /* 毛玻璃（亮色）：白底半透明 + 深色描边。
+     ⚠️ 亮色下 --glass-bg 的**白度要比直觉更高**（0.62 而不是 0.3），
+     因为背景是浅色，透明度一高玻璃就和背景糊成一片、
+     边界消失，"玻璃感"也就没了。深色底才是反过来。
+     内高光在亮色下改用**白色**——光打在玻璃上缘这件事两种主题都成立。 */
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-hover: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(18, 22, 29, 0.08);
+  --glass-border-hover: rgba(18, 22, 29, 0.16);
+  --glass-blur: 16px;
+  --glass-saturate: 140%;
+  --glass-sheen: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 1px 2px rgba(15, 20, 28, 0.04), 0 12px 32px -12px rgba(15, 20, 28, 0.14);
+  --glass-shadow-hover: 0 2px 4px rgba(15, 20, 28, 0.05), 0 20px 48px -16px rgba(15, 20, 28, 0.2);
 
   /* 排版 */
   --font-sans: 'Inter Variable', 'Noto Sans SC Subset', -apple-system,
@@ -102,49 +233,185 @@
 
 :root[data-theme='dark'] {
   color-scheme: dark;
-  /* 不用纯黑：深处带一点冷色，配极光才不会显脏 */
-  --bg: #07080c;
-  --bg-subtle: #0d0f15;
-  --bg-inset: #14171f;
+  /* 不用纯黑：深处带一点冷蓝，配星野才不会显脏 */
+  --bg: #070a11;
+  --bg-subtle: #0c1019;
+  --bg-inset: #131824;
 
   --surface: rgba(255, 255, 255, 0.035);
   --surface-strong: rgba(255, 255, 255, 0.062);
 
-  --text: #eceef4;
-  --text-muted: #99a2b4;
-  --text-faint: #6d7688;
+  --text: #e8ecf4;
+  --text-muted: #98a3b6;
+  --text-faint: #6b7688;
 
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.18);
 
-  --accent: #6ee7d0;
-  --accent-hover: #98f2e0;
-  --accent-soft: rgba(110, 231, 208, 0.12);
-  --accent-glow: rgba(110, 231, 208, 0.32);
-  /* 亮青色底上用白字会糊，深色模式下按钮文字必须转深 */
-  --on-accent: #04130f;
+  /* 暗色下强调色要提亮，否则在近黑底上读不出来 */
+  --accent: #6cb4e0;
+  --accent-hover: #96cdf0;
+  --accent-soft: rgba(108, 180, 224, 0.13);
+  --accent-glow: rgba(108, 180, 224, 0.34);
+  --on-accent: #04121c;
 
-  /* 深色下极光才有资格当主角，但依然要留出中间那片黑：
-     四团光贴在四角，中心保持干净，标题才压得住。 */
-  --aurora-1: rgba(74, 127, 224, 0.42);
-  --aurora-2: rgba(139, 92, 214, 0.35);
-  --aurora-3: rgba(209, 99, 140, 0.26);
-  --aurora-4: rgba(42, 181, 160, 0.3);
-  --aurora-opacity: 1;
-  --grad-1: #6ee7d0;
-  --grad-2: #6aa8ff;
-  --grad-3: #b98cff;
-  --grad-4: #ff9db4;
-  --grid-line: rgba(255, 255, 255, 0.065);
-  --noise-opacity: 0.036;
-  --halo: rgba(110, 231, 208, 0.26);
+  /* 地平线暖光在暗色里是唯一的光源，给得更足 */
+  --warm: #f0b070;
+  --warm-soft: rgba(240, 176, 112, 0.14);
+  --warm-glow: rgba(255, 190, 120, 0.4);
+
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --noise-opacity: 0.038;
+  --halo: rgba(108, 180, 224, 0.26);
+
+  /* 封面六套配色：暗色下是「夜色星野」，六套都在冷蓝灰家族里 */
+  --cv-1-a: #0d1524;
+  --cv-1-b: #05080f;
+  --cv-1-body: #c8d6e8;
+  --cv-1-haze: #2c3f5c;
+  --cv-1-warm: #e8a15c;
+  --cv-2-a: #0e1622;
+  --cv-2-b: #04070c;
+  --cv-2-body: #bcd2ea;
+  --cv-2-haze: #27405e;
+  --cv-2-warm: #f0b070;
+  --cv-3-a: #101626;
+  --cv-3-b: #060810;
+  --cv-3-body: #d2dcf0;
+  --cv-3-haze: #333a5e;
+  --cv-3-warm: #e8a878;
+  --cv-4-a: #0a1420;
+  --cv-4-b: #04080e;
+  --cv-4-body: #c2dcec;
+  --cv-4-haze: #22475e;
+  --cv-4-warm: #f2b478;
+  --cv-5-a: #121721;
+  --cv-5-b: #070a0f;
+  --cv-5-body: #d4dae4;
+  --cv-5-haze: #3a4350;
+  --cv-5-warm: #e0a068;
+  --cv-6-a: #0c1626;
+  --cv-6-b: #050911;
+  --cv-6-body: #c6d4ee;
+  --cv-6-haze: #2a3a62;
+  --cv-6-warm: #f0ac7c;
+
+  /* 暗色下地面和暗角可以压得很重，天体的亮才立得住 */
+  --cv-ground-op: 0.72;
+  --cv-vignette-op: 0.4;
+  --cv-band-op: 0.06;
+  --cv-rim-op: 0.16;
+
+  /* 暗色封面是深空底，ID 保持浅字 + 深色阴影 */
+  --cv-id-color: rgba(255, 255, 255, 0.66);
+  --cv-id-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+
+  /* ---------- 场景：暗色 = 夜色星野 ---------- */
+  /* 天体：月白偏冷，暗部沉入深蓝 */
+  --scene-body-1: #eef3fa;
+  --scene-body-2: #b9c8dc;
+  --scene-body-3: #5d6d84;
+  --scene-halo-in: rgba(200, 224, 255, 0.5);
+  --scene-halo-mid: rgba(108, 160, 224, 0.2);
+  --scene-halo-out: rgba(108, 160, 224, 0);
+
+  /* 天空：顶部近黑蓝 → 地平线转冷灰蓝（再往下才是暖） */
+  --scene-sky-1: #05070d;
+  --scene-sky-2: #0a1018;
+  --scene-sky-3: #16202e;
+  --scene-sky-4: #2b3446;
+
+  /* 地面：几乎全黑，只在地平线紧下方留一线反光 */
+  --scene-gnd-1: #2e3949;
+  --scene-gnd-2: #1a2230;
+  --scene-gnd-3: #0d121a;
+  --scene-gnd-4: #05080d;
+
+  /* 地平线光带：暗色下的视觉焦点，给足亮度 */
+  --scene-line-a: rgba(240, 176, 112, 0);
+  --scene-line-b: rgba(255, 198, 138, 0.85);
+  --scene-line-c: rgba(255, 240, 218, 1);
+
+  --scene-warm-in: rgba(255, 186, 118, 0.62);
+  --scene-warm-mid: rgba(240, 160, 96, 0.22);
+  --scene-warm-out: rgba(240, 160, 96, 0);
+
+  --scene-vol-1: rgba(255, 200, 148, 0.3);
+  --scene-vol-2: rgba(126, 160, 200, 0.12);
+  --scene-vol-3: rgba(126, 160, 200, 0);
+
+  --scene-band: rgba(255, 255, 255, 0.28);
+  --scene-band-opacity: 0.34;
+  --scene-rim: rgba(226, 238, 255, 0.85);
+  --scene-rim-shadow: rgba(8, 12, 20, 0.75);
+  --scene-groundfog: rgba(96, 116, 142, 0.34);
+  --scene-haze: rgba(60, 78, 102, 0.36);
+  --scene-fade-0: rgba(4, 6, 10, 0);
+  --scene-fade-1: rgba(4, 6, 10, 0.75);
+  --scene-fade-opacity: 0.9;
+  --scene-figure: #04060a;
+  --scene-figure-shadow: rgba(0, 0, 0, 0.6);
+  --scene-star: #dce6f5;
+
+  /* 暗色下场景本身已经很暗，文字保护层可以更轻，
+     只在左半边稍微压一点，让标题和星野拉开层次。 */
+  --hero-scrim: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--bg) 72%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 32%, transparent) 36%,
+    transparent 64%
+  );
+
+  /* 标题渐变的四个色**同时决定标题的"亮度"**，不只是色相。
+     早先用的是 #6cb4e0 / #8fb6f0 / #b49cf0 / #e8a0bc，
+     四个都是中等亮度的彩色，实测渲染出来标题平均亮度只有
+     147/255、对比度 6.37:1——大号标题虽然够用（AA 对大字
+     只要 3:1），但观感上"整行发灰、没有气势"。
+     现在的取值把明度整体抬到 0.78~0.88 区间，
+     保留原色相关系（冷青 → 长春花蓝 → 紫 → 暖粉）。 */
+  --grad-1: #9fd4f5;
+  --grad-2: #b8d2fb;
+  --grad-3: #d4c2fb;
+  --grad-4: #fbc4d8;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow: 0 16px 44px -18px rgba(0, 0, 0, 0.72);
   --shadow-lg: 0 44px 100px -44px rgba(0, 0, 0, 0.86);
 
-  --title-sheen: linear-gradient(180deg, #ffffff 0%, rgba(236, 238, 244, 0.88) 100%);
+  --title-sheen: linear-gradient(180deg, #ffffff 0%, rgba(232, 236, 244, 0.88) 100%);
+
+  /* ---------- 毛玻璃材质（全站统一） ----------
+     设计意图：毛玻璃的"高级"来自三件事同时成立——
+       ① 底子是半透明的（能看见背景的光，才叫"玻璃"而不是"灰板"）；
+       ② 有一层模糊把背景揉开（backdrop-filter），否则只是半透明色块；
+       ③ 边缘有一道**内高光**（inset 0 1px rgba(255,255,255,...)），
+          模拟光打在玻璃上缘——这一条是"玻璃"和"塑料"的分界。
+
+     ⚠️ 深色底上最容易犯的错是**把模糊调太大**。
+     blur 一超 20px，背景的极光就被揉成一片死灰，玻璃看起来像块脏抹布。
+     16px + saturate(140%) 这组是实测观感最"透亮"的：
+     饱和度稍微提一点，透出来的光才有颜色、不发灰。
+
+     ⚠️ 另一个反直觉点：**玻璃要够透，但文字要够实**。
+     所以玻璃只负责面板，文字永远走 --text / --text-muted，
+     不要把文字也调成半透明——那会同时损失对比度和质感。
+
+     ⚠️ 白色底的 alpha 不能太低。最早写 0.045，实测面板几乎看不见，
+     "玻璃"变成了一层若有若无的水雾。提到 0.075 之后，
+     面板边界才立得住、有"一块实体浮在这里"的感觉。
+     同时保留足够透明度，让背后的极光仍然透得出来。 */
+  --glass-bg: rgba(255, 255, 255, 0.075);
+  --glass-bg-hover: rgba(255, 255, 255, 0.105);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-hover: rgba(255, 255, 255, 0.2);
+  --glass-blur: 16px;
+  --glass-saturate: 140%;
+  /* 内高光：上缘 1px 的亮线。系数很低，但没它整块玻璃就"趴"了 */
+  --glass-sheen: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 12px 32px -12px rgba(0, 0, 0, 0.5);
+  --glass-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.3), 0 20px 48px -16px rgba(0, 0, 0, 0.62);
 }
+
 
 /* --- 3. 基础重置 ---------------------------------------------------------- */
 
@@ -304,8 +571,9 @@ main {
   /* 90% 而不是更透：82% 的时候，大字号标题从页头下面滚过去会透出来一块糊影，
      反而比不透玻璃更脏。留 10% 只为保住一点磨砂质感。 */
   background: color-mix(in srgb, var(--bg) 90%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
+  /* ⚠️ 前缀在前、无前缀在后（顺序不能反，会丢声明，见 .glass 处的详细注释） */
   -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid transparent;
   transition: border-color 0.3s var(--ease);
 }
@@ -439,48 +707,151 @@ main {
   color: var(--text);
 }
 
-/* --- 8. 首屏 -------------------------------------------------------------- */
+/* --- 8. 首屏（居中极简 + 毛玻璃） ----------------------------------------- */
 
+/* 首屏的结构极简单：一个居中的单列。
+   ------------------------------------------------------------
+   ⚠️ 这里刻意**不放 grid**。上一版是「左文案 / 右粒子场」两栏，
+   但现在主视觉撤掉了，只剩一列文字——再用 grid 就是给自己找麻烦：
+   两栏的隔离、断点、对齐全都要重算，而单列只需要 max-width + margin auto。
+   元素越少，越不容易出「留白被重复声明」那类问题（上一版踩过，见下方注释）。
+
+   ⚠️ 高度仍然**只由 min-height 一处表达**，padding 交给 .hero__inner。
+   这个分工是上一版用 4 档视口溢出 78~171px 换来的教训：
+   高度和留白必须分开归属，否则改任一处都会意外相乘。 */
 .hero {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   min-height: calc(100svh - 3.5rem);
-  padding: clamp(3rem, 2rem + 6vw, 7rem) 0 clamp(3rem, 2rem + 4vw, 5rem);
   overflow: hidden;
   /* 光全部由 .backdrop 的极光提供，这里不再叠自己的色晕，
      否则两层渐变会互相打架、把标题背后的光搅浑。 */
 }
 
 .hero__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
+  max-width: 52rem;
+  padding-inline: clamp(1.25rem, 4vw, 3rem);
+  padding-block: clamp(4rem, 10vh, 7rem);
+  text-align: center;
+}
+
+/* ==========================================================================
+   首屏入场：从远到近，丝滑放大
+
+   为什么这样写（而不是复用 [data-reveal] 的淡入）：
+   ------------------------------------------------------------
+   [data-reveal] 是**滚动触发**的，元素进入视口才淡入。
+   但首屏一打开就已经在视口里了，用它等于"开局就播完"，
+   没有"推近"的过程。所以首屏需要一套**一次性、加载即播**的动画。
+
+   三层要素叠出纵深：
+     ① scale   —— 从 0.94 推到 1，这是"远 → 近"的本体；
+     ② blur    —— 从 8px 收到 0，模拟"对焦"，没有它只是缩放、不像推近；
+     ③ translateY —— 从下往上 18px，给一点"升起"的方向感。
+
+   ⚠️ **必须用 JS 加类来驱动，不能只写 CSS animation**。
+   原因：如果直接写在 .hero__eyebrow 等元素上，那么**无 JS 时**
+   动画照样会播（CSS 不依赖 JS），播完之后元素停在最终态、没问题；
+   但**有 JS 且用户开了"减少动态效果"时**就会出问题——
+   我们必须能"不播"。所以让 CSS 默认是**最终态**，
+   由 JS 加 .is-entering 才切到初始态再过渡回来。
+   这样：
+     - 无 JS        → 直接就是最终态（CSS 默认值），可见、可读 ✅
+     - 有 JS 正常   → JS 加类 → 从远处推近 ✅
+     - 有 JS + 减少动态 → JS 不加类 → 直接最终态，零动画 ✅
+
+   ⚠️ blur 是这套动画里**最贵的一帧**（要重绘整层）。
+   只给 4 个元素加、且 8px 起步，实测无掉帧；
+   但**不要**把这套动画铺到列表里的几十张卡片上。
+   ========================================================================== */
+
+.hero__eyebrow,
+.hero__title,
+.hero__lede,
+.hero__glass {
+  /* 默认 = 最终态。无 JS 时停在这里。 */
+  opacity: 1;
+  transition:
+    opacity 0.9s var(--ease),
+    transform 1.05s var(--ease),
+    filter 0.9s var(--ease);
+}
+
+/* 初始态：只有在 JS 确认"要播动画"时才挂上 */
+.is-entering .hero__eyebrow,
+.is-entering .hero__title,
+.is-entering .hero__lede,
+.is-entering .hero__glass {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(18px) scale(0.94);
+  /* 从"远处"推近：起点略小 + 模糊，终点清晰到位 */
+}
+
+/* 逐个错开的延迟。标题最慢、最重，所以给它最长的时间。 */
+.is-entering .hero__eyebrow {
+  transition-delay: 0.05s;
+}
+.is-entering .hero__title {
+  transition-delay: 0.12s;
+  transition-duration: 1.15s, 1.3s, 1.15s;
+}
+.is-entering .hero__lede {
+  transition-delay: 0.24s;
+}
+.is-entering .hero__glass {
+  transition-delay: 0.34s;
+}
+
+/* 减少动态效果：整段跳过（这里再兜一层，
+   即使 JS 判错了、类被挂上，也强制回到最终态） */
+@media (prefers-reduced-motion: reduce) {
+  .is-entering .hero__eyebrow,
+  .is-entering .hero__title,
+  .is-entering .hero__lede,
+  .is-entering .hero__glass {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+
+  .hero__scroll {
+    animation: none;
+    opacity: 0.7;
+  }
 }
 
 .hero__eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
-  margin: 0 0 clamp(1.25rem, 1rem + 1vw, 2rem);
+  margin: 0 0 clamp(1.5rem, 1.2rem + 1.2vw, 2.25rem);
   font-size: var(--fs-micro);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   color: var(--text-faint);
-}
-
-.hero__eyebrow::before {
-  content: '';
-  width: 1.75rem;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent));
-  box-shadow: 0 0 10px var(--accent-glow);
+  /* 居中布局下这条起手线要对称，所以去掉 ::before 的那条左向光缝，
+     改由 .pulse-dot 单独承担"这站是活的"这个暗示 */
 }
 
 .hero__title {
   margin: 0;
-  font-size: var(--fs-display);
+  /* 居中构图要"大"。比左对齐那一版放大一档：
+     左对齐时标题有右半边画面托着，居中时四周全是留白，
+     字号不够大就会显得"缩在中间"。 */
+  font-size: clamp(2.5rem, 1.2rem + 5.2vw, 5.4rem);
   font-weight: 600;
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-  max-width: 20ch;
+  line-height: 1.06;
+  letter-spacing: -0.038em;
+  max-width: 22ch;
   /* 用 pretty 而不是 balance：窄屏上标题会折行，
      balance 会把「写成能复现的笔记。」切成「……的笔」+「记。」，末行只剩一个字。
      pretty 专门避免这种孤字。desktop 的换行由 <br> 强制，不受影响。 */
@@ -493,10 +864,10 @@ main {
 }
 
 .hero__lede {
-  margin: clamp(1.5rem, 1rem + 2vw, 2.5rem) 0 0;
-  max-width: 36ch;
-  font-size: clamp(1.0625rem, 1rem + 0.5vw, 1.3rem);
-  line-height: 1.6;
+  margin: clamp(1.5rem, 1rem + 2vw, 2.25rem) 0 0;
+  max-width: 40ch;
+  font-size: clamp(1.0625rem, 1rem + 0.45vw, 1.25rem);
+  line-height: 1.65;
   color: var(--text-muted);
   letter-spacing: -0.005em;
 }
@@ -516,44 +887,76 @@ main {
   text-wrap: pretty;
 }
 
-.hero__meta {
-  margin-top: clamp(2.5rem, 2rem + 3vw, 4rem);
+/* 首屏毛玻璃数据条：全站毛玻璃语言的样板。
+   ------------------------------------------------------------
+   它是首屏唯一的"实体"，所以材质必须立得住：半透明底 + 模糊 +
+   内高光边 + 柔和长阴影，四条一起上（见 .glass 的注释）。 */
+.hero__glass {
+  margin-top: clamp(2.25rem, 1.8rem + 2.4vw, 3.5rem);
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border);
-  max-width: 44rem;
+  gap: 0.6rem 1.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 999px;
   font-size: var(--fs-small);
   color: var(--text-faint);
 }
 
-.hero__meta strong {
+.hero__glass strong {
   color: var(--text);
   font-weight: 500;
 }
 
-.hero__meta .hero__dot {
-  color: var(--border-strong);
+.hero__glass .hero__dot {
+  color: var(--text-faint);
+  opacity: 0.5;
 }
 
 /* 窄屏上这行会折行，分隔点会孤零零留在行尾，干脆收掉 */
 @media (max-width: 44rem) {
-  .hero__meta {
-    gap: 0.5rem 1.5rem;
+  .hero__glass {
+    gap: 0.5rem 1.3rem;
+    padding: 0.85rem 1.25rem;
   }
   .hero__dot {
     display: none;
   }
 }
 
+/* 首屏底部的滚动提示：一个很轻的向下箭头，带缓慢的呼吸位移。
+   比写一行 "scroll ↓" 更安静——极简风里，动作比文字好。 */
 .hero__scroll {
-  display: block;
-  margin-top: clamp(2rem, 1.5rem + 2vw, 3rem);
-  font-size: var(--fs-micro);
-  letter-spacing: 0.14em;
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.5rem, 3.5vh, 2.75rem);
+  z-index: 1;
+  translate: -50% 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: 0.95rem;
   color: var(--text-faint);
+  animation: hero-breathe 2.8s var(--ease) infinite;
+  transition: color 0.3s var(--ease);
+}
+
+.hero__scroll:hover {
+  color: var(--text);
+}
+
+@keyframes hero-breathe {
+  0%,
+  100% {
+    translate: -50% 0;
+    opacity: 0.55;
+  }
+  50% {
+    translate: -50% 6px;
+    opacity: 0.95;
+  }
 }
 
 /* --- 9. 区块 -------------------------------------------------------------- */
@@ -1264,7 +1667,95 @@ a.tag:hover {
   color: var(--text-muted);
 }
 
-/* --- 17. 按钮 ------------------------------------------------------------- */
+/* --- 17. 毛玻璃材质（全站统一） ------------------------------------------- */
+
+/* 一块毛玻璃 = 半透明底 + 背景模糊 + 内高光边 + 柔和长阴影。
+   ------------------------------------------------------------
+   四条缺一不可，缺哪条都会"降级"成别的东西：
+
+     | 缺什么 | 退化成什么 |
+     |---|---|
+     | 半透明底 | 一块不透明的灰板，看不出背景 |
+     | backdrop-filter | 半透明色块（就是普通的 opacity 层） |
+     | 内高光边 | 塑料片——边缘平，没有"玻璃受光"的感觉 |
+     | 长阴影 | 贴在背景上的贴纸，没有厚度 |
+
+   用法：在任何卡片/面板上加 class="glass" 即可。
+
+   ⚠️ **backdrop-filter 的三条实战注意**：
+   1. **必须有东西可模糊**。玻璃下面若是纯色，模糊等于没做，看起来
+      还是一块半透明色块。本站玻璃之所以成立，是因为底下有
+      .backdrop 的极光在缓慢漂移——玻璃把"后面有东西在动"这件事
+      透出来，材质感才成立。所以**别把玻璃放在纯色区域上**。
+   2. **blur 别超 20px**。超过之后背景被揉成一片死灰，玻璃像脏抹布。
+      16px 是"能看出背景但又不干扰文字"的甜点（实测）。
+      同时加 saturate 提一点饱和，透出来的光才有颜色、不发灰。
+   3. **backdrop-filter 会创建层叠上下文**，且**对祖先的 filter/opacity
+      敏感**——如果某个祖先设了 `filter` 或 `opacity < 1`，
+      玻璃会失效或裁切异常。改这块时留意。
+
+   ⚠️ **可读性**：玻璃只负责面板，文字**永远走 --text / --text-muted**，
+   不要跟着调成半透明。半透明文字叠在模糊背景上，
+   对比度会随背后的极光漂移而波动，最坏情况直接读不出来。 */
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  /* ⚠️ **两条都要写，且无前缀的必须写在后面**。
+     ------------------------------------------------------------
+     踩过的坑（2026-09 实测，很难查）：
+     源码里我先写 `backdrop-filter` 再写 `-webkit-backdrop-filter`，
+     构建后 lightningcss 把**无前缀那条删掉了**，只留 `-webkit-`：
+
+       .glass{background:...;-webkit-backdrop-filter:blur(16px) saturate(140%);...}
+
+     而 headless Chromium 里 `CSS.supports('-webkit-backdrop-filter','blur(1px))`
+     返回 **false**（它只认无前缀的），于是玻璃的模糊彻底失效——
+     getComputedStyle 读回来是 "none"，面板退化成一块
+     几乎看不见的半透明白（alpha 只有 0.043），
+     **看起来"玻璃没生效"，但代码里明明写了**。
+
+     修法：无前缀的写在**后面**，让它在层叠里胜出；
+     压缩器会按浏览器目标决定要不要保留前缀版本，
+     但无前缀的那条必须留在产物里。
+     验证方式：直接搜产物 CSS 里 `.glass{` 后面有没有
+     `backdrop-filter:`（不能只有 `-webkit-backdrop-filter:`）。 */
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--glass-sheen);
+  transition:
+    background-color 0.4s var(--ease),
+    border-color 0.4s var(--ease),
+    box-shadow 0.4s var(--ease),
+    transform 0.4s var(--ease);
+}
+
+/* 悬浮：玻璃"提"起来一点。幅度刻意很小——
+   极简风里，动效一旦超过 4px 就开始显得毛躁。 */
+.glass--hover:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-shadow-hover), inset 0 1px 0 0 var(--glass-sheen);
+  transform: translateY(-3px);
+}
+
+/* 尊重"减少动态效果"：不做位移，只让明度变化承担反馈 */
+@media (prefers-reduced-motion: reduce) {
+  .glass--hover:hover {
+    transform: none;
+  }
+}
+
+/* 不支持 backdrop-filter 时的兜底。
+   ⚠️ 必须给"更实的底"，否则玻璃会退化成几乎看不见的一层水膜，
+   文字直接和背景糊在一起。@supports 在这里不是可选项。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+  }
+}
+
+/* --- 18. 按钮 ------------------------------------------------------------- */
 
 .btn {
   display: inline-flex;
@@ -1391,9 +1882,12 @@ html.theme-switching *::after {
 }
 
 /* ==========================================================================
-   22. 背景层：极光 + 技术网格 + 胶片颗粒
-   全部纯 CSS，零图片素材。这一层只负责"质感"与"科幻感"，不承载任何内容，
-   所以整体 pointer-events: none、aria-hidden。
+   22. 背景层：冷色大气 + 地平线暖光 + 地面纵深 + 底纹 + 胶片颗粒
+   全部纯 CSS，零图片素材。这一层只负责"质感"与"宇宙尺度的氛围"，
+   不承载任何内容，所以整体 pointer-events: none、aria-hidden。
+
+   注意分工：主角地平线画面（人影 + 巨大天体）由 <Horizon> 组件在首屏绘制；
+   这一层是全站通用的大气底色，滚动到任何页面都能感觉到。
    ========================================================================== */
 
 .backdrop {
@@ -1404,49 +1898,62 @@ html.theme-switching *::after {
   pointer-events: none;
 }
 
-/* 极光：四团径向渐变缓慢漂移。
-   刻意不用 filter: blur()——径向渐变的边缘本来就是软的，
-   省掉一次全屏模糊，帧率能差一倍。
-
-   几何上的两条硬规矩：
-   1) 光团全部贴在四角/边缘，画面中央留黑。光糊满整屏就不叫"高级"了。
-   2) 落点收到 62–66% 就化完，别让四团在中间互相叠加成一片灰紫。 */
-.backdrop__aurora {
+/* 大气：顶部冷、往地平线方向逐渐提亮。
+   用两层径向渐变叠出"天光从地平线漫上来"的效果，
+   比单层线性渐变更有空气感。 */
+.backdrop__plain {
   position: absolute;
-  inset: -22% -12%;
-  opacity: var(--aurora-opacity);
+  inset: 0;
   background-image:
-    radial-gradient(32rem 22rem at 84% -4%, var(--aurora-1), transparent 64%),
-    radial-gradient(30rem 22rem at 9% -7%, var(--aurora-2), transparent 64%),
-    radial-gradient(26rem 20rem at 71% 33%, var(--aurora-3), transparent 66%),
-    radial-gradient(24rem 18rem at 3% 55%, var(--aurora-4), transparent 66%);
-  background-repeat: no-repeat;
-  animation: aurora-drift 38s var(--ease) infinite alternate;
-  will-change: transform;
+    radial-gradient(
+      120% 62% at 50% 96%,
+      var(--scene-sky-4),
+      transparent 68%
+    ),
+    radial-gradient(
+      150% 80% at 12% -10%,
+      var(--scene-sky-1),
+      transparent 62%
+    );
+  opacity: 1;
 }
 
-@keyframes aurora-drift {
-  from {
-    transform: translate3d(-1.8%, -1%, 0) scale(1.04);
-  }
-  to {
-    transform: translate3d(2%, 1.4%, 0) scale(1.1);
-  }
-}
-
-/* 顶部一束冷光：从屏幕上方漏下来，把视线压向首屏标题。 */
-.backdrop__beam {
+/* 地平线暖光：全站唯一的暖色。
+   刻意压得很低、很淡——它是"远处的天光"，不是装饰。
+   页面滚动时它始终固定在视口底部附近，像真的站在平原上远眺。 */
+.backdrop__warm {
   position: absolute;
-  top: -24rem;
   left: 50%;
-  width: min(76rem, 140%);
-  height: 46rem;
+  bottom: -14rem;
+  width: min(110rem, 175%);
+  height: 30rem;
   transform: translateX(-50%);
-  background: radial-gradient(closest-side, var(--accent-glow), transparent);
-  opacity: 0.4;
+  background: radial-gradient(
+    closest-side,
+    var(--warm-glow),
+    transparent 72%
+  );
+  opacity: 0.42;
+  filter: blur(6px);
 }
 
-/* 技术网格：只让页头附近看得见，往下渐隐。
+/* 地面纵深：越往下越暗。
+   长页面从上往下滚动时，像是从地平线一路走进黑暗里，
+   给"孤独、沉思"这个情绪一个物理上的方向感。 */
+.backdrop__ground {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 46%,
+    color-mix(in srgb, var(--bg) 55%, transparent) 74%,
+    var(--bg) 100%
+  );
+  opacity: 0.9;
+}
+
+/* 极淡的底纹：只让页头附近看得见，往下渐隐。
    整屏铺满格子会跟正文抢注意力，也会显脏。 */
 .backdrop__grid {
   position: absolute;
@@ -1472,8 +1979,8 @@ html.theme-switching *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .backdrop__aurora {
-    animation: none;
+  .backdrop__warm {
+    filter: none;
   }
 }
 
@@ -1617,7 +2124,7 @@ html.theme-switching *::after {
     90deg,
     transparent,
     var(--accent-glow) 22%,
-    var(--aurora-2) 52%,
+    var(--warm-glow) 52%,
     var(--accent-glow) 78%,
     transparent
   );
@@ -1630,68 +2137,41 @@ html.theme-switching *::after {
   opacity: 0.85;
 }
 
-/* --- 首屏 --- */
-.hero__glow {
-  position: absolute;
-  z-index: 0;
-  inset: -8% -20%;
-  background: radial-gradient(closest-side at 32% 52%, var(--halo), transparent 68%);
-  pointer-events: none;
-}
+/* --- 首屏：居中单列（替代早先的「左文案 / 右粒子场」两栏） ---
+   ------------------------------------------------------------
+   上一版这里是 .hero__layout（grid 两栏）+ .hero__stage（粒子场）
+   + .formula（公式读数）+ .hero__scrim（文字保护层）+ .hud（四角取景框），
+   一共五个元素，每个都要处理自己的对齐、断点和层级。
 
-.hero__inner {
-  position: relative;
-  z-index: 1;
-}
+   这一版全部撤掉了：
+     - 粒子场 → 与极简气质冲突，见 index.astro 的说明；
+     - 公式读数 → 它存在的意义是"解释粒子在跑什么"，粒子没了它就没意义；
+     - scrim   → 原本是给粒子场压暗、保文字可读的，现在背景只剩柔光，不需要；
+     - HUD 取景框 → 那是"精密仪器"的语言，和"极简苹果"是两套。
 
-/* 四角取景框对齐 .wrap 的内容边界：视口比 --wide 宽时按居中算，
-   窄时自动退回 gutter，两种情况下都能贴住文字栏，不会飘到屏幕边缘。 */
-.hero > .hud {
-  top: clamp(2rem, 1.5rem + 3vw, 4rem);
-  bottom: clamp(2rem, 1.5rem + 3.5vw, 4.5rem);
-  left: max(var(--gutter), calc((100% - var(--wide)) / 2 + var(--gutter)));
-  right: max(var(--gutter), calc((100% - var(--wide)) / 2 + var(--gutter)));
-}
+   撤掉之后首屏只剩 .hero__inner 一个元素，所有对齐都退化成
+   flex 居中 + max-width，不再有任何算术。
 
-/* 数据条的顶线换成中间亮、两端化开的光缝 */
-.hero__meta {
-  position: relative;
-  border-top: 0;
-}
+   ⚠️ 保留下来的两条教训（虽然对应的代码已经不在了，但规律仍然成立）：
 
-.hero__meta::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--accent-glow),
-    var(--border-strong) 22%,
-    var(--border) 62%,
-    transparent
-  );
-}
+   ① **同级 z-index 相同时，DOM 靠后者覆盖靠前者**。
+      早先 .hero__scrim 和 .hero__layout 都是 z-index:1 且 scrim 靠后，
+      深色渐变把整个文案栏盖住，标题亮度从 236 掉到 98。
+      现在 .hero__inner 是 z-index:1、.hero__scroll 也是 1，
+      但两者不重叠（一个是居中块、一个绝对定位在底部），所以没有冲突——
+      **不重叠是比调 z-index 更安全的做法**。
 
-.hero__meta strong {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-}
+   ② **高度和留白必须分开归属**。
+      .hero 只管 min-height，.hero__inner 只管 padding-block。
+      早先三层都声明垂直留白，相乘后内容溢出首屏 78~171px。 */
 
-.hero__scroll {
-  font-family: var(--font-mono);
-  letter-spacing: 0.2em;
-  transition:
-    color 0.3s var(--ease),
-    text-shadow 0.3s var(--ease);
-}
-
-.hero__scroll:hover {
-  color: var(--accent);
-  text-shadow: 0 0 16px var(--accent-glow);
+/* 首屏的纵向节奏在窄屏上要收紧：
+   原来桌面端的 padding-block 有 clamp(4rem, 10vh, 7rem)，
+   手机上 10vh 相对更小但 4rem 起步偏高，首屏会被顶出一屏。 */
+@media (max-width: 44rem) {
+  .hero__inner {
+    padding-block: clamp(3rem, 8vh, 5rem);
+  }
 }
 
 /* 文章编号：跟封面角标同一套哈希，前缀 // 让它读起来像代码注释 */
@@ -1748,6 +2228,97 @@ html.theme-switching *::after {
   pointer-events: none;
 }
 
+/* ==========================================================================
+   叠加态（量子交互 · 卡片层）
+
+   概念：未观测的卡片处于「叠加态」——像波函数还没坍缩，
+   封面有轻微的重影和错位，整体半透明，边界模糊；
+   鼠标悬浮（= 观测）时，重影收拢、透明度归位、边界锐化，
+   卡片「坍缩」成一个确定的实体。
+
+   实现要点：
+   1) 重影不能用多份 DOM 复制封面（那会翻倍渲染成本）。
+      改用 drop-shadow 做色差位移——一个 filter 就能给出"三层错开"的错觉，
+      而且 GPU 直接吃，成本远低于再画两遍 SVG。
+   2) 错位量刻意极小（1–2px）。叠影一旦明显，就从"量子态"掉进"故障艺术"，
+      跟这个站的克制调性冲突。
+   3) 只有支持 hover 的设备才启用浮起，触屏上永远保持坍缩态（否则点不动）。
+   ========================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  .card {
+    /* 叠影用两个方向的冷色 drop-shadow，模拟"同一物体在两个本征态下的位置差" */
+    transition:
+      transform 0.6s var(--ease-out),
+      opacity 0.6s var(--ease-out);
+  }
+
+  .card__cover {
+    opacity: 0.82;
+    filter:
+      drop-shadow(1.5px 0 0 var(--accent-glow))
+      drop-shadow(-1px -1px 0 var(--warm-soft));
+    transition:
+      opacity 0.6s var(--ease-out),
+      filter 0.6s var(--ease-out),
+      border-color 0.5s var(--ease),
+      box-shadow 0.5s var(--ease);
+  }
+
+  /* 卡片标题在叠加态下也略微虚化，观测后锐化 */
+  .card__title,
+  .card__desc,
+  .card__meta {
+    transition:
+      opacity 0.6s var(--ease-out),
+      filter 0.6s var(--ease-out),
+      color 0.25s var(--ease);
+  }
+
+  .card__title {
+    opacity: 0.9;
+  }
+
+  .card__desc {
+    opacity: 0.82;
+  }
+
+  /* —— 观测：坍缩成实体 —— */
+  .card:hover .card__cover,
+  .card:focus-within .card__cover {
+    opacity: 1;
+    filter: none;
+  }
+
+  .card:hover .card__title,
+  .card:focus-within .card__title {
+    opacity: 1;
+  }
+
+  .card:hover .card__desc,
+  .card:focus-within .card__desc {
+    opacity: 1;
+  }
+}
+
+/* 触屏或不支持 hover：直接给坍缩态，不做叠加效果 */
+@media not all and (hover: hover) {
+  .card__cover {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+/* 用户要求减弱动效时，叠加效果整体关掉 */
+@media (prefers-reduced-motion: reduce) {
+  .card__cover,
+  .card__title,
+  .card__desc {
+    opacity: 1;
+    filter: none;
+  }
+}
+
 .card:hover .card__cover {
   border-color: color-mix(in srgb, var(--accent) 52%, var(--border-strong));
   box-shadow:
@@ -1769,8 +2340,8 @@ html.theme-switching *::after {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.66);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  color: var(--cv-id-color);
+  text-shadow: var(--cv-id-shadow);
   font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
@@ -1820,16 +2391,22 @@ a.tag:hover {
 }
 
 /* --- 收尾面板：半透明 + 内嵌极光，平面立刻有纵深 --- */
+/* 收尾框：改用全站统一的 .glass 材质。
+   ------------------------------------------------------------
+   早先这里手写了一套 backdrop-filter（blur 14 + saturate 140）+
+   inset 高光 + --shadow-lg，本质上和 .glass 是同一个东西，
+   只是数值各写各的。问题不是"不好看"，而是**两套数值会漂**：
+   改了一处另一处不会跟着动，时间一长同一站里就出现了
+   两种微妙的玻璃，看起来像没做完。
+
+   现在统一走 .glass（在 HTML 里加 class="glass"），
+   这里只保留它特有的部分：内衬光晕和圆角。
+   ⚠️ 内衬光晕（::before 那两团）刻意只保留一点点，
+   它是"收尾框"这个特定元素的装饰，不属于玻璃材质本身，
+   所以不进 .glass。 */
 .outro__box {
   position: relative;
   overflow: hidden;
-  background: var(--surface);
-  border-color: var(--border);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  box-shadow:
-    var(--shadow-lg),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .outro__box::before {
@@ -1838,8 +2415,8 @@ a.tag:hover {
   inset: -45% -12% auto -12%;
   height: 175%;
   background-image:
-    radial-gradient(26rem 17rem at 10% 6%, var(--aurora-4), transparent 70%),
-    radial-gradient(24rem 17rem at 88% 16%, var(--aurora-2), transparent 70%);
+    radial-gradient(26rem 17rem at 10% 6%, var(--accent-soft), transparent 70%),
+    radial-gradient(24rem 17rem at 88% 16%, var(--warm-soft), transparent 70%);
   opacity: 0.5;
   pointer-events: none;
 }
@@ -1856,8 +2433,8 @@ a.tag:hover {
 
 .prose pre {
   background: var(--surface-strong);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1946,3 +2523,903 @@ a.tag:hover {
   background: var(--accent-soft);
   color: var(--text);
 }
+
+/* ==========================================================================
+   25. 技术文档排版
+   目标：读起来像一本正经的技术手册，而不是一篇随手的博客。
+   所有增强都建立在「不打断阅读」这个前提上——
+   装饰一律退到背景里，只有内容和结构站在前面。
+   ========================================================================== */
+
+/* ---------- 25.1 代码块：工具条（语言标签 + 复制按钮） ---------- */
+
+/* 外层容器，负责给工具条定位 */
+.code-shell {
+  position: relative;
+  margin-top: 1.3em;
+}
+
+.code-shell > pre {
+  margin-top: 0;
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.95rem;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--bg-subtle);
+}
+
+.code-bar__lang {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.code-bar__copy {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    background-color 0.2s var(--ease);
+}
+
+.code-bar__copy:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--bg-inset);
+}
+
+/* 复制成功：短暂点亮成强调色，给一个明确的完成反馈 */
+.code-bar__copy.is-done {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* 代码块本体接在工具条下面，所以上圆角要收掉 */
+.code-shell > pre {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* ---------- 25.2 代码块：行号 ---------- */
+
+/*
+  行号用 CSS counter 生成，不额外写 DOM。
+  注意：Shiki 把代码行包在 <span class="line"> 里，所以直接在 .line 上计数即可。
+  但要排除最后一个空行，否则末尾会多出一个空行号。
+*/
+.prose pre code {
+  counter-reset: line;
+  display: block;
+}
+
+.prose pre code .line {
+  display: inline-block;
+  width: 100%;
+}
+
+.prose pre code .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2.2em;
+  margin-right: 1.1em;
+  padding-right: 0.6em;
+  border-right: 1px solid var(--border);
+  text-align: right;
+  color: var(--text-faint);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* 行内代码块（没有 .line）不该有行号 */
+.prose :not(pre) > code::before {
+  content: none;
+}
+
+/* 长代码行悬停时轻微提亮，方便横向扫读时对齐 */
+.prose pre code .line:hover {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* ---------- 25.3 表格：斑马纹 + 粘性表头 ---------- */
+
+.prose table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.prose thead th {
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-strong);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.prose tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-subtle) 60%, transparent);
+}
+
+.prose tbody tr:hover {
+  background: var(--accent-soft);
+}
+
+.prose td {
+  vertical-align: top;
+}
+
+/* 表格里的代码不要撑破单元格 */
+.prose td code,
+.prose th code {
+  white-space: nowrap;
+}
+
+/* ---------- 25.4 引用：加一个引号装饰，让它跟正文拉开 ---------- */
+
+.prose blockquote {
+  position: relative;
+  padding: 0.85rem 1.1rem 0.85rem 1.6rem;
+  border-left-width: 3px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.prose blockquote::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, var(--accent), transparent);
+}
+
+/* ---------- 25.5 提示框：:::note / :::tip / :::warn / :::danger ---------- */
+
+/*
+  语法（在 Markdown 里写）：
+    :::warn
+    这里写内容，支持行内 **加粗** 等
+    :::
+
+  为什么用 blockquote 的变体而不是自定义容器：
+  不改 remark 管线，靠 CSS 就能认出来，兼容性最好。
+  真要加容器语法再动 remark-cjk-spacing 那个插件的兄弟位置。
+*/
+.prose .callout {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.6em;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle);
+  font-size: 0.9688em;
+}
+
+.prose .callout__title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+}
+
+.prose .callout > :not(.callout__title) {
+  margin-top: 0;
+}
+
+.prose .callout--note {
+  border-left-color: var(--accent);
+}
+.prose .callout--note .callout__title {
+  color: var(--accent);
+}
+
+.prose .callout--tip {
+  border-left-color: var(--warm);
+  background: color-mix(in srgb, var(--warm) 6%, var(--bg-subtle));
+}
+.prose .callout--tip .callout__title {
+  color: var(--warm);
+}
+
+.prose .callout--warn {
+  border-left-color: #d99a3c;
+  background: color-mix(in srgb, #d99a3c 7%, var(--bg-subtle));
+}
+.prose .callout--warn .callout__title {
+  color: #b07c22;
+}
+
+:root[data-theme='dark'] .prose .callout--warn .callout__title {
+  color: #e8b45e;
+}
+
+.prose .callout--danger {
+  border-left-color: #d9534f;
+  background: color-mix(in srgb, #d9534f 7%, var(--bg-subtle));
+}
+.prose .callout--danger .callout__title {
+  color: #c0392b;
+}
+
+:root[data-theme='dark'] .prose .callout--danger .callout__title {
+  color: #ef7a76;
+}
+
+/* ---------- 25.6 锚点：标题悬浮时露出一个可点的 # ---------- */
+
+.prose h2,
+.prose h3 {
+  position: relative;
+}
+
+.prose h2 > a.anchor,
+.prose h3 > a.anchor {
+  position: absolute;
+  left: -1.15em;
+  top: 0;
+  padding-right: 0.35em;
+  color: var(--text-faint);
+  opacity: 0;
+  text-decoration: none;
+  font-weight: 400;
+  transition: opacity 0.2s var(--ease);
+}
+
+.prose h2:hover > a.anchor,
+.prose h3:hover > a.anchor,
+.prose h2 > a.anchor:focus,
+.prose h3 > a.anchor:focus {
+  opacity: 0.75;
+}
+
+@media (max-width: 46rem) {
+  /* 窄屏左边没地方放，锚点收掉 */
+  .prose h2 > a.anchor,
+  .prose h3 > a.anchor {
+    display: none;
+  }
+}
+
+/* ---------- 25.7 图片与图注：技术文档里的截图要有"图 X"的规格感 ---------- */
+
+.prose figure {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1.8em 0;
+}
+
+.prose figure img {
+  margin: 0;
+}
+
+.prose figcaption {
+  margin-top: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-align: left;
+  padding-left: 0.15rem;
+  border-left: 2px solid var(--border-strong);
+  padding: 0 0 0 0.7rem;
+}
+
+/* ---------- 25.8 分隔线：技术文档里常用它切分大段 ---------- */
+
+.prose hr {
+  margin: 3.2em 0;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border-strong) 22%,
+    var(--border-strong) 78%,
+    transparent
+  );
+}
+
+/* ---------- 25.9 脚注 ---------- */
+
+.prose .footnotes {
+  margin-top: 3.5em;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+}
+
+.prose .footnotes::before {
+  content: '注释';
+  display: block;
+  margin-bottom: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.prose .footnotes ol {
+  padding-left: 1.2em;
+}
+
+/* 正文里的脚注引用 */
+.prose sup a {
+  text-decoration: none;
+}
+
+/* ---------- 25.10 任务列表：技术清单/检查表 ---------- */
+
+.prose li input[type='checkbox'] {
+  margin-right: 0.45em;
+  accent-color: var(--accent);
+}
+
+.prose ul:has(> li > input[type='checkbox']) {
+  list-style: none;
+  padding-left: 0.15em;
+}
+
+/* ---------- 25.11 正文首段：略微放大，作为"导入段" ---------- */
+
+.prose > p:first-of-type {
+  font-size: 1.08em;
+  color: var(--text);
+}
+
+/* ---------- 25.12 键位组合 ---------- */
+
+.prose kbd + kbd {
+  margin-left: 0.25em;
+}
+
+/* ---------- 25.13 正文中的术语表（dl） ---------- */
+
+.prose dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5em 0;
+}
+
+.prose dt {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.prose dd {
+  margin: 0.2em 0 0 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.9688em;
+}
+
+/* ---------- 25.14 窄屏适配：行号太占地方，收掉 ---------- */
+
+@media (max-width: 40rem) {
+  .prose pre code .line::before {
+    content: none;
+  }
+  .prose pre {
+    padding-left: 1rem;
+  }
+}
+
+/* ==========================================================================
+   26. 毛玻璃 2.0 —— 把材质做厚（本轮改版）
+
+   用户反馈原话：「首页做得高级一点，现在看起来感觉没什么东西，很单调，
+   整体的玻璃质感大幅度增加」。
+
+   拆成两个独立的问题，分别治理（这一步很关键，否则会改错地方）：
+
+   问题一 ·「没什么东西」= **实体太少**
+     上一版首屏只有一块窄胶囊（数据条）浮在中央，
+     左右全是空。极简不等于空——苹果那种"高级的简"是
+     **少量实体 + 大留白**，实体本身要有分量、有层次；
+     只剩一块小胶囊，读起来是"没做完"而不是"克制"。
+     → 解法：26.5 增加一组技术方向玻璃卡，首屏从 1 块玻璃变成 7 块，
+       但仍然是居中的、无装饰的、信息密度很低的构图。
+
+   问题二 ·「玻璃质感不够」= **背景没有可模糊的东西**（最容易漏的一条）
+     玻璃的可见度 ≈ 它背后明暗对比的强度。改动前，全站的光都堆在
+     视口底部（--warm 是 bottom: -14rem），首屏中段是一片平的深色，
+     backdrop-filter 开多大都揉不出差别 → 玻璃看起来就是一块半透明灰板。
+     同时材质本身只有"单层 rgba + 一条内高光"，也确实单薄。
+     → 解法：26.1 补两团落在首屏中段的柔光斑（给玻璃"造料"）；
+       26.2/26.3 把玻璃从"一层半透明"改成"有厚度的材质"。
+
+   本节放在文件最后，靠"同特异性下后定义者胜出"覆盖前面的旧值。
+   不直接改前面的段落，是为了让这一版改了什么、为什么改，可回溯。
+
+   ⚠️ 覆盖率检查：改完必须确认这几条真的赢了，别被前面的规则反超：
+     · .glass 的 box-shadow 层数（应为 6 层）
+     · .hero__glass 的背景（应为渐变，不是纯 rgba）
+   ========================================================================== */
+
+/* ---------- 26.1 背景：两团柔光斑，专为玻璃提供"可模糊的料" ----------
+   位置是算过的，不是随手放的：
+     cool —— 压在首屏中上部、略偏左，正好落在标题与数据条之间；
+     warm —— 落在首屏中下部、略偏右，托住玻璃卡那一片。
+   两者在玻璃卡区域**交叠**，于是玻璃背后出现一道冷→暖的横向过渡。
+   玻璃压在这种过渡上时，模糊会把硬边揉成柔和色晕，
+   边框内侧还会透出各自的色相——这才是"玻璃"而不是"灰色半透明层"。
+
+   为什么用 80px 模糊而不是渐变自己发散：
+   径向渐变的边缘仍是可感知的圆形轮廓，直接铺会看出"两个圆"；
+   先画成清晰圆再整体模糊，得到的是无边界的光雾，更像自然光。 */
+.backdrop__bloom {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  /* 只动 transform，避免触发 layout/paint 之外的额外重算 */
+  will-change: transform;
+}
+
+.backdrop__bloom--cool {
+  top: 0%;
+  left: 4%;
+  width: min(56rem, 94vw);
+  height: min(42rem, 66vh);
+  /* 中间加了 56% 处的停靠点，让光斑有一个可辨的"核心"而不是均匀弥散。
+     均匀弥散的光看起来像"背景脏了"，有核心的光才像"光源"。 */
+  background: radial-gradient(
+    closest-side,
+    rgba(104, 158, 232, 0.56),
+    rgba(104, 158, 232, 0.14) 56%,
+    rgba(104, 158, 232, 0) 78%
+  );
+  animation: bloom-drift-a 28s ease-in-out infinite;
+}
+
+.backdrop__bloom--warm {
+  top: 30%;
+  left: 30%;
+  width: min(50rem, 86vw);
+  height: min(36rem, 58vh);
+  background: radial-gradient(
+    closest-side,
+    rgba(244, 178, 118, 0.52),
+    rgba(244, 178, 118, 0.13) 54%,
+    rgba(244, 178, 118, 0) 80%
+  );
+  animation: bloom-drift-b 34s ease-in-out infinite;
+}
+
+/* ★ 第三团：压在首屏「数据条 + 卡片」正后方的横向核心光带。
+   ------------------------------------------------------------
+   前两团是大范围的氛围光，负责底色；但它们的模糊半径大（80px），
+   明暗过渡非常平缓——玻璃压上去，透出来的是一整片几乎均匀的灰蓝，
+   看起来仍然"不透"。
+
+   毛玻璃的可见度 ≈ 背后明暗梯度的陡峭程度。所以这里补一团
+   **更小、更亮、模糊更浅（56px）** 的光，而且刻意做成**横向的椭圆**：
+   它的长边正好对上"数据条 + 卡片"那一片矩形的玻璃，
+   让这块区域背后的亮度比四周明显高一档，梯度就够陡了。
+
+   尺寸与位置是照着首屏元素量的，不是估的（1440×900 下）：
+   数据条中心约在视口 47% 处，卡片区约 51%~65%，两者合起来约 44%~66%。
+   所以取 top: 38% + height: 38vh（约 360~700px），正好托住这一整片。
+   换个高度（比如 1440×720）时它会随 vh 一起缩，仍然贴着玻璃。
+
+   它没有漂移动画：这一团是"结构光"不是"氛围光"，
+   位置必须稳定地压在玻璃后面，动了反而会让玻璃的透光忽明忽暗。 */
+.backdrop__bloom--core {
+  top: 38%;
+  left: 50%;
+  translate: -50% 0;
+  width: min(48rem, 94vw);
+  height: min(22rem, 38vh);
+  filter: blur(56px);
+  background: radial-gradient(
+    closest-side,
+    rgba(160, 198, 255, 0.48),
+    rgba(160, 198, 255, 0.14) 58%,
+    rgba(160, 198, 255, 0) 80%
+  );
+}
+
+/* 漂移幅度控制在 2~3%，周期 30s 上下：
+   肉眼看到的是"光在极慢地呼吸"，而不是"有个东西在动"。 */
+@keyframes bloom-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2.5%, 3%, 0) scale(1.06);
+  }
+}
+
+@keyframes bloom-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.03);
+  }
+  50% {
+    transform: translate3d(-3%, -2.5%, 0) scale(1);
+  }
+}
+
+/* 减少动态效果：光停在原地。**注意这里不能只是 filter: none**——
+   80px 模糊是静态观感的一部分，关掉它会露出两个硬边圆形，
+   比不动还难看。所以只停动画。 */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop__bloom {
+    animation: none;
+  }
+}
+
+/* ---------- 26.2 玻璃令牌提档（全站生效） ----------
+   改令牌而不是改每一处 .glass，是为了让页头、代码块、收尾面板
+   这些早就用了变量的地方一起提上来，避免"某处还是旧质感"的参差。 */
+:root[data-theme='dark'] {
+  /* 0.075 → 0.088：面板边界更明确，但还没到"白色块"的程度。
+     这条数值改起来很敏感，0.1 以上就会开始压住背后的光。 */
+  --glass-bg: rgba(255, 255, 255, 0.088);
+  --glass-bg-hover: rgba(255, 255, 255, 0.122);
+  /* 边框从 0.145 提到 0.17，内高光从 0.16 提到 0.20。
+     理由：玻璃的"精致感"有一大半来自边缘那道亮线。
+     暗底上边框太淡时，面板的四条边会"糊"进背景，
+     看起来像一团模糊的灰，而不是一片有边界的玻璃。 */
+  --glass-border: rgba(255, 255, 255, 0.17);
+  --glass-border-hover: rgba(255, 255, 255, 0.26);
+  /* 16px → 18px：仍在 20px 的安全线内，但模糊的"厚度"明显可感。
+     saturate 从 140% 一路提到 168%——暗底上透出来的冷/暖光
+     饱和度低就会发灰，这正是"玻璃显得脏"的常见原因。
+     这一条配合 .glass 里的 brightness(1.12) 一起，是让玻璃
+     "透亮"而不是"蒙灰"的关键。 */
+  --glass-blur: 18px;
+  --glass-saturate: 168%;
+  --glass-sheen: rgba(255, 255, 255, 0.2);
+  /* 阴影加深一档：玻璃"浮起来"的高度感主要靠长投影，
+     长投影不够时，再亮的内高光也救不回平面感。 */
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.34), 0 18px 44px -16px rgba(0, 0, 0, 0.64);
+  --glass-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.38), 0 26px 60px -18px rgba(0, 0, 0, 0.72);
+}
+
+/* ---------- 26.3 .glass：从"一层半透明"改成"有厚度的材质" ----------
+
+   旧版是一层纯 rgba + 一条上缘内高光。问题在于**它没有厚度**：
+   上下左右完全对称，光打上去没有方向，看起来像一张贴纸。
+
+   新版做了三件事：
+
+   ① **底改成 163° 的四段线性渐变**（左上亮 → 中段沉 → 右下微亮）。
+      纯 rgba 是各向同性的，渐变才有"光从左上打过来"的方向感。
+      数值刻意做成 0.115 / 0.052 / 0.028 / 0.055 这种非单调曲线，
+      中段压得比两端低——这是玻璃在光下真实的观感（中间最透）。
+
+   ② **内高光从 1 层加到 3 层**：
+      上缘 1px 亮线（受光面）+ 下缘 1px 暗线（背光面，做出厚度）
+      + 内部 24px 柔光（玻璃内部的散射，很淡但能撑开体积）。
+      只留上缘亮线时，玻璃的下边缘会"漏"，看起来像没封口。
+
+   ③ **外圈加一层 1px 轮廓光**（0 0 0 1px rgba(255,255,255,.035)）。
+      这一层模拟玻璃边缘的折射亮边，是整套里最便宜、
+      但对"精致感"贡献最大的一条——去掉它整块会立刻变糙。
+
+   ⚠️ box-shadow 顺序有讲究：inset 的写在前、外投影写在后，
+      浏览器的绘制顺序与书写顺序一致，外投影在后才能压在轮廓光之上。 */
+.glass {
+  background: linear-gradient(
+    163deg,
+    rgba(255, 255, 255, 0.115) 0%,
+    rgba(255, 255, 255, 0.052) 38%,
+    rgba(255, 255, 255, 0.028) 72%,
+    rgba(255, 255, 255, 0.055) 100%
+  );
+  /* ⚠️ 无前缀的必须写在后面（lightningcss 会保留最后一条，
+     顺序反了产物里只剩 -webkit-，而 Chromium 不认它 → 模糊静默失效）
+
+     ★ brightness(1.12) 是这轮补的，效果比想象中大：
+     它让玻璃**透出来的背景整体提亮 12%**。真实厚玻璃因为折射与
+     多次内反射，透过来的光本来就会比原背景亮——少了这一档，
+     玻璃在暗背景上就是"变暗的灰片"，加上它才像"聚光的玻璃"。
+     数值不要超过 1.2，过了之后亮部会发白、丢失背景的层次。 */
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(1.12);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) brightness(1.12);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-sheen),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.26),
+    inset 0 0 24px 0 rgba(255, 255, 255, 0.026),
+    0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 1px 2px rgba(0, 0, 0, 0.32),
+    0 16px 40px -16px rgba(0, 0, 0, 0.6);
+}
+
+.glass--hover:hover {
+  background: linear-gradient(
+    163deg,
+    rgba(255, 255, 255, 0.165) 0%,
+    rgba(255, 255, 255, 0.085) 40%,
+    rgba(255, 255, 255, 0.055) 74%,
+    rgba(255, 255, 255, 0.085) 100%
+  );
+  border-color: var(--glass-border-hover);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 28px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.36),
+    0 24px 56px -18px rgba(0, 0, 0, 0.7);
+}
+
+/* 兜底：不支持 backdrop-filter 时给更实的底，
+   否则玻璃会退化成几乎看不见的水膜，文字直接和背景糊在一起。 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+  }
+}
+
+/* ---------- 26.4 首屏数据条：从"胶囊"升级成有质感的工具条 ----------
+   原来是 border-radius: 999px 的胶囊。胶囊的问题在于
+   **圆角半径 = 高度的一半**，上下缘的 1px 内高光被拉成弧线，
+   视觉上"厚度"就不成立了。改成 0.85rem 的圆角矩形后，
+   上下两条边是直线，内高光才读得出来。
+   仍然保留很宽的横向留白，气质不变。 */
+.hero__glass {
+  border-radius: 0.95rem;
+  padding: 0.9rem 1.5rem;
+  background: linear-gradient(
+    170deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.05) 52%,
+    rgba(255, 255, 255, 0.062) 100%
+  );
+  color: var(--text-muted);
+  font-size: var(--fs-small);
+}
+
+/* 数据条内部的数字：走 --text 而不是继承的 --text-muted。
+   玻璃上要"文字实、面板透"，数字是这块面板的信息核心，
+   给它最高的对比度，整条读起来才有重心。 */
+.hero__glass strong {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 26.5 首屏技术方向卡：把"空"填成"有层次的空" ----------
+   3 列网格、最多两行，信息量很低但实体感足够。
+   窄屏落到 2 列，再窄就是单列——**不做横向滚动**，
+   滚动容器在首屏会诱导用户去拖，破坏"一眼看完"的构图。 */
+.hero__topics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.55rem, 0.35rem + 0.7vw, 0.85rem);
+  width: 100%;
+  max-width: 42rem;
+  margin-top: clamp(1rem, 0.7rem + 1vw, 1.6rem);
+}
+
+/* 卡片本体。复用 .glass 的材质，只补布局与交互。
+   overflow: hidden 是为了让 ::after 的斜向光泽被圆角裁住。 */
+.glass-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 0.9rem;
+  text-align: left;
+  overflow: hidden;
+  text-decoration: none;
+  /* 卡片本身不加位移，位移交给 .glass--hover（-3px）。
+     这里只补一条颜色过渡，避免悬停时"跳"一下。 */
+  transition:
+    background-color 0.4s var(--ease),
+    border-color 0.4s var(--ease),
+    box-shadow 0.4s var(--ease),
+    transform 0.4s var(--ease);
+}
+
+/* 斜向光泽：悬停时从左上扫过一道极淡的亮带。
+   它不是在"加效果"，而是在**补玻璃的反射**——
+   真实的玻璃在视角变化时会有反光移动，缺了它，悬停就只是"变亮一点"，
+   少了那层"材质在回应你"的感觉。
+   透明度 0.06 是上限，再亮就变成廉价的扫光动画了。 */
+.glass-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    118deg,
+    transparent 28%,
+    rgba(255, 255, 255, 0.06) 46%,
+    transparent 64%
+  );
+  opacity: 0;
+  transition: opacity 0.55s var(--ease);
+  pointer-events: none;
+}
+
+.glass-tile:hover::after,
+.glass-tile:focus-visible::after {
+  opacity: 1;
+}
+
+/* 方向名：主信息，给 --text 的实色 */
+.glass-tile__name {
+  color: var(--text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  /* 中文长词优先不折行，折了会撑高卡片、打乱网格行高一致 */
+  overflow-wrap: break-word;
+}
+
+/* 计数：次要信息，但仍然要能读清。
+   最早用 --text-faint，实测压在玻璃上几乎看不见——
+   玻璃本身有 0.088 的白色底，再叠一个很淡的文字色，
+   对比度会掉到 3:1 以下。改用 --text-muted。
+   用 tabular-nums 让不同位数的数字宽度一致，
+   否则"9 篇"和"12 篇"在网格里会左右错开一点点。 */
+.glass-tile__meta {
+  color: var(--text-muted);
+  font-size: 0.78125rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 34rem) {
+  .hero__topics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 26rem;
+  }
+}
+
+/* ---------- 26.6 入场动画：把技术方向卡也纳入"从远到近" ----------
+   数据条之后接力，延迟 0.42s。整串节奏是：
+     eyebrow 0.05 → 标题 0.12 → 导语 0.24 → 数据条 0.34 → 卡片 0.42
+   卡片是最后一块"落地"的实体，收尾要干净，
+   所以它比前面几档更快（0.8s），不要拖成"最后一张慢慢飘过来"。
+
+   ⚠️ 仍然是"CSS 默认 = 最终态"，初始态只由 .is-entering 覆盖，
+      这样无 JS 时直接可读（见 BaseLayout 里的说明）。 */
+.hero__topics {
+  opacity: 1;
+  transition:
+    opacity 0.8s var(--ease),
+    transform 0.9s var(--ease),
+    filter 0.8s var(--ease);
+}
+
+.is-entering .hero__topics {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(18px) scale(0.94);
+  transition-delay: 0.42s;
+}
+
+/* 减少动态效果：整段跳过。这里必须再兜一层——
+   即使 JS 判断失误把 .is-entering 挂上了，也要强制回到最终态。 */
+@media (prefers-reduced-motion: reduce) {
+  .is-entering .hero__topics {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    transition: none;
+  }
+  .glass-tile::after {
+    /* 不做悬停扫光：它属于"动效"，不是静态外观的一部分 */
+    transition: none;
+  }
+}
+
+/* ---------- 26.7 首屏高度预算：加了实体就必须重算留白 ----------
+   ⚠️ 这是上一版踩过的坑的同一类：**首屏新增内容后，留白必须同步回收**。
+   只加元素不收 padding，两行卡片（约 150px）会把整块内容顶出视口，
+   首屏就要滚动才看得全 —— 而"一屏看完"正是首屏构图成立的前提。
+
+   上一版的教训更狠：当时三层元素各自声明垂直留白，
+   相乘后溢出 78~171px。这里的纪律仍然是同一条 ——
+   **一个维度只归一个元素管**：.hero 只管 min-height，
+   纵向留白只由 .hero__inner 的 padding-block 表达，别处不许再声明。
+
+   原来 padding-block 是 clamp(4rem, 10vh, 7rem)（桌面约上下各 112px），
+   现在收到 clamp(2.25rem, 5vh, 3.75rem)（约上下各 60px），
+   腾出的 ~100px 正好装下两行卡片。留白依然够宽，
+   但不再是"空旷"——因为中间多了实体去占位。 */
+.hero__inner {
+  padding-block: clamp(2.25rem, 5vh, 3.75rem);
+}
+
+/* 数据条上方的间距同样收一档 */
+.hero__glass {
+  margin-top: clamp(1.4rem, 1.1rem + 1.3vw, 2.1rem);
+}
+
+/* 矮视口（笔记本横屏、缩放的浏览器）要再紧一档。
+   用 max-height 而不是宽度断点，因为卡住内容的是**竖直空间**，
+   跟窗口多宽没关系——这是当初用宽度断点治溢出治不好的原因。 */
+@media (max-height: 820px) {
+  .hero__inner {
+    padding-block: clamp(1.4rem, 3.2vh, 2.25rem);
+  }
+  .hero__glass {
+    margin-top: 1.1rem;
+  }
+  .hero__topics {
+    margin-top: 0.8rem;
+  }
+}
+
+/* 窄屏：宽度变窄后标题会折成 3~4 行，竖直空间反而更紧，
+   所以 padding 比桌面端还要小一点，同时卡片落成 2 列（见 26.5）。 */
+@media (max-width: 44rem) {
+  .hero__inner {
+    padding-block: clamp(1.75rem, 5vh, 2.75rem);
+  }
+}
+
+/* ---------- 26.8 首屏标题：把三行压回两行 ----------
+
+   症状：1440 宽下标题折成三行，最后一行只剩「笔记。」两个字，
+   既难看又白白吃掉一行的高度（矮视口溢出有一半是它造成的）。
+
+   两个原因叠在一起：
+
+   ① `max-width: 22ch` 是**按西文字符宽度**估的（ch = 数字 0 的宽度）。
+      中文一行的实际字宽是 1em，比 ch 大得多，
+      于是 22ch 换算出来的盒子比预期窄，9 个字的第二行放不下。
+
+   ② `text-wrap: pretty` 会主动做"均衡换行"以避免段末孤字。
+      它本意是好的，但这个标题的换行位置已经由 `<br />` 手动指定，
+      再叠一层 pretty，它就会把「笔记。」挪到第三行去"求平衡"——
+      对手动控制换行的标题来说，pretty 是帮倒忙。
+
+   修法：max-width 交给父级（.hero__inner 的 52rem）去管，
+   宽度**一个维度只归一个元素管**（这条纪律在本文件里反复出现）；
+   去掉 pretty；字号上限从 5.4rem 收到 4.8rem，
+   让 9 个字的第二行（约 691px）能落进 inner 的可用宽度（约 736px）。 */
+.hero__title {
+  font-size: clamp(2.2rem, 1.1rem + 4.3vw, 4.8rem);
+  max-width: none;
+  text-wrap: initial;
+  line-height: 1.08;
+}
+
+/* 矮视口：标题再收一档。
+   这里是溢出最吃紧的地方——标题一行就占 80px，收字号比收留白更有效
+   （留白已经收到 1.4rem，再收就贴脸了）。 */
+@media (max-height: 780px) {
+  .hero__title {
+    font-size: clamp(1.9rem, 1rem + 3.6vw, 4rem);
+  }
+  .hero__lede {
+    font-size: var(--fs-small);
+  }
+  .hero__topics {
+    margin-top: 0.7rem;
+  }
+}
+

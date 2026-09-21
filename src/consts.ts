@@ -5,12 +5,12 @@
  */
 export const SITE = {
   /** 站点名，出现在浏览器标题和页头 */
-  title: '知行笔记',
+  title: '炜轩的blog',
   /** 副标题 / tagline */
   tagline: '把踩过的坑写下来',
   /** 默认 meta description */
   description:
-    '张炜轩的技术笔记：Linux 与运维、Kubernetes 与混沌工程实验记录，以及学习过程中的踩坑复盘。',
+    '张炜轩的技术笔记：Linux 与云计算方向的实验记录，以及备考、毕设和大创路上的一些复盘。',
   author: '张炜轩',
   /** <html lang> */
   lang: 'zh-CN',

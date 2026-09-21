@@ -5,7 +5,12 @@
  * 同一个 seed 永远得到同一张图；构图和配色由 seed 的哈希决定，
  * 所以文章加了删了、顺序变了，已有文章的封面都不会跟着变。
  *
- * 六套配色都是深色底 + 一个亮色，保证混在列表里时整片看起来是一套的。
+ * 构图语汇跟首屏的 <Horizon> 保持一致——都是「巨大天体 / 地平线 / 人影 / 星野」
+ * 这套宇宙尺度的元素，只是每篇文章取其中一两个做变奏。
+ * 这样列表页整片扫过去，读者能立刻认出"这是同一个世界"。
+ *
+ * 六套配色全部落在冷蓝灰域内，只有地平线那一点是暖色。
+ * 混在列表里时整片看起来是一套的，同时每张又有自己的辨识度。
  */
 interface Props {
   /** 稳定种子，一般传文章 id */
@@ -56,16 +61,34 @@ function rnd(): number {
   return state / 4294967296;
 }
 
-const INKS = [
-  { a: '#0d1f1c', b: '#07120f', line: '#5fd0ba', accent: '#5fd0ba' },
-  { a: '#12172b', b: '#080c18', line: '#8fa4ff', accent: '#8fa4ff' },
-  { a: '#1f1020', b: '#120814', line: '#e39bd8', accent: '#e39bd8' },
-  { a: '#161c10', b: '#0b0f07', line: '#a8d17f', accent: '#a8d17f' },
-  { a: '#1d1d1f', b: '#0f0f11', line: '#c7c7cc', accent: '#a1a1a6' },
-  { a: '#23120c', b: '#150a06', line: '#f0997b', accent: '#f0997b' },
-];
+/**
+ * 六套配色的**槽位号**（不是色值）。
+ *
+ * 真正的颜色写在 global.css 的 --cv-N-* 令牌里（N = 1..6），亮暗两套各有一份，
+ * 由 :root / :root[data-theme='dark'] 决定。
+ * 这样同一张封面在两种主题下会各自变成「白昼高原」和「夜色星野」，
+ * 不需要在构建期为每个主题各生成一份 SVG。
+ *
+ * ⚠️ 踩过坑，别改回去：
+ *   槽位号只能存 **纯数字字符串**，令牌前缀由下面的 cv() 统一拼。
+ *   曾经把这里写成 ['c1'..'c6']，于是 cv('body') 拼出
+ *   `--cv-c2-body`，而 CSS 里定义的是 `--cv-2-body`——名字对不上，
+ *   15 个颜色令牌全部失效，浏览器按「无效 var」处理，fill 回落到黑色，
+ *   亮色主题下整块封面变成黑板。
+ *   这类错误不会报错、构建退出码也是 0，只能靠目检截图或
+ *   把产物里的 `var(--cv-...)` 和 CSS 里的定义做一次集合比对才能发现。
+ *
+ * 统一入口：所有令牌引用都走 cv('body') 这种写法，不手写 `var(--cv-...)`，
+ * 避免前缀重复或漏写。
+ */
+const INK_SLOTS = ['1', '2', '3', '4', '5', '6'];
 
-const ink = INKS[seedNum % INKS.length];
+const ink = INK_SLOTS[seedNum % INK_SLOTS.length];
+
+/** 拼接封面配色令牌：cv('body') → `var(--cv-3-body)` */
+function cv(part: string): string {
+  return `var(--cv-${ink}-${part})`;
+}
 const variant = (seedNum >>> 4) % 6;
 
 /**
@@ -77,97 +100,131 @@ const variant = (seedNum >>> 4) % 6;
  */
 const K = Math.max(H, W * 0.42);
 
-let art = '';
+// 地平线高度：所有构图共用，保持整片列表的地平线在同一视觉高度上
+const HZ = H * 0.68;
 
+// 人影尺寸：跟首屏同一套逻辑，极小。有些构图会用到
+const fH = Math.max(H * 0.075, 22);
+
+let art = '';
+let glow = '';
+
+/* ---------- 变奏 1：天体弧面（只露出弧的下缘，占据上半幅） ---------- */
 if (variant === 0) {
-  /* 同心圆：视线从右侧的圆心向外扩散 */
-  const cx = Math.round(W * 0.7 + rnd() * W * 0.1);
-  const cy = Math.round(H * 0.44 + rnd() * H * 0.12);
-  const rings = [0.19, 0.35, 0.52, 0.71, 0.93];
-  art = rings
-    .map(
-      (k, i) =>
-        `<circle cx="${cx}" cy="${cy}" r="${(K * k).toFixed(1)}" fill="none" stroke="${ink.line}" stroke-width="3" opacity="${(0.44 - i * 0.055).toFixed(3)}"/>`,
-    )
-    .join('');
-  art += `<circle cx="${cx}" cy="${cy}" r="${(K * 0.028).toFixed(1)}" fill="${ink.accent}" opacity="0.9"/>`;
-} else if (variant === 1) {
-  /* 竖条丛：一根根立起来，其中一根是亮色 */
-  const n = 9;
-  const barW = W * 0.038;
-  const gap = W * 0.098;
-  const x0 = W * 0.075;
-  const base = H * 0.88;
-  const maxBh = H * 0.74; // 别让扁画幅里的柱子顶出画面
-  const accentIdx = Math.floor(rnd() * n);
-  for (let i = 0; i < n; i++) {
-    const bh = Math.min(maxBh, K * (0.16 + rnd() * 0.58));
-    const isAcc = i === accentIdx;
-    art += `<rect x="${(x0 + i * gap).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="6" fill="${isAcc ? ink.accent : ink.line}" opacity="${isAcc ? 0.95 : (0.2 + (i % 3) * 0.1).toFixed(3)}"/>`;
+  const cx = W * (0.3 + rnd() * 0.42);
+  const R = K * (1.15 + rnd() * 0.35);
+  const cy = HZ - R * 0.62;
+  art += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${R.toFixed(0)}" fill="${cv('body')}" opacity="0.9"/>`;
+  // 表面带纹
+  art += `<clipPath id="c${uid}a"><circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${R.toFixed(0)}"/></clipPath>`;
+  let bands = `<g clip-path="url(#c${uid}a)">`;
+  for (let i = 0; i < 7; i++) {
+    const by = cy - R + R * (0.22 + i * 0.12);
+    bands += `<rect x="${(cx - R).toFixed(0)}" y="${by.toFixed(0)}" width="${(R * 2).toFixed(0)}" height="${(R * 0.022).toFixed(1)}" fill="#000" opacity="var(--cv-band-op)"/>`;
   }
-} else if (variant === 2) {
-  /* 点阵：大小和亮度沿对角线递增，整片点读起来像一道斜向的渐变 */
-  const cols = 13;
-  const rows = 7;
-  const x0 = W * 0.075;
-  const y0 = H * 0.15;
-  const stepX = W * 0.07;
-  const stepY = H * 0.118;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const t = (r + c) / (rows + cols - 2);
-      const rad = 4 + rnd() * 5 + t * 3;
-      const isAcc = (r * 5 + c * 3) % 13 === 0;
-      art += `<circle cx="${(x0 + c * stepX).toFixed(1)}" cy="${(y0 + r * stepY).toFixed(1)}" r="${(isAcc ? rad + 4 : rad).toFixed(1)}" fill="${isAcc ? ink.accent : ink.line}" opacity="${isAcc ? 0.95 : (0.19 + t * 0.4).toFixed(3)}"/>`;
-    }
-  }
-} else if (variant === 3) {
-  /* 斜线束：一组平行斜线贯穿全幅，其中最粗的一条是亮色 */
-  const n = 7;
-  const accentIdx = Math.floor(rnd() * n);
-  const slope = H * 0.78;
-  for (let i = 0; i < n; i++) {
-    const x = W * 0.03 + i * W * 0.125;
-    const isAcc = i === accentIdx;
-    art += `<path d="M${x.toFixed(1)} ${H} L${(x + slope * 0.9).toFixed(1)} 0" fill="none" stroke="${isAcc ? ink.accent : ink.line}" stroke-width="${isAcc ? 6 : 3}" opacity="${isAcc ? 0.95 : 0.44}"/>`;
-  }
-} else if (variant === 4) {
-  /* 嵌套方框：一层层收进去 */
-  const cx = W * 0.5;
-  const cy = H * 0.5;
-  const basis = Math.min(K * 1.24, W * 0.72);
-  const ks = [0.22, 0.37, 0.52, 0.68, 0.85, 1];
-  art = ks
-    .map((k, i) => {
-      const bw = basis * k;
-      const bh = bw * 0.62;
-      return `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(cy - bh / 2).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="10" fill="none" stroke="${ink.line}" stroke-width="3" opacity="${(0.42 - i * 0.04).toFixed(3)}"/>`;
-    })
-    .join('');
-  // 扁画幅里这条亮线会跑到画面外，兜一个下限把它拉回来
-  const barY = Math.max(12, cy - basis * 0.31 - H * 0.04);
-  art += `<rect x="${(cx - basis / 2).toFixed(1)}" y="${barY.toFixed(1)}" width="${(W * 0.036).toFixed(1)}" height="5" rx="2.5" fill="${ink.accent}" opacity="0.9"/>`;
-} else {
-  /* 波纹：几条正弦折线横穿，其中一条是亮色 */
-  const n = 5;
-  const accentIdx = 1 + Math.floor(rnd() * (n - 1));
-  const steps = 8;
-  for (let i = 0; i < n; i++) {
-    const baseY = H * (0.19 + i * 0.155);
-    const amp = H * (0.04 + rnd() * 0.08);
-    const isAcc = i === accentIdx;
-    const pts: string[] = [];
-    for (let s = 0; s <= steps; s++) {
-      const x = W * 0.05 + (s * W * 0.9) / steps;
-      const y = baseY + Math.sin((s / steps) * Math.PI * 1.6 + i) * amp;
-      pts.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
-    }
-    art += `<polyline points="${pts.join(' ')}" fill="none" stroke="${isAcc ? ink.accent : ink.line}" stroke-width="${isAcc ? 6 : 3.5}" opacity="${isAcc ? 0.95 : 0.42}" stroke-linecap="round"/>`;
-  }
+  bands += `</g>`;
+  art += bands;
+  glow += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${(R * 1.1).toFixed(0)}" fill="${cv('body')}" opacity="0.3"/>`;
 }
 
-/* 统一的品牌记号：左上角一小段亮色短线，六套构图都有，用来串联风格 */
-art += `<rect x="${(W * 0.06).toFixed(1)}" y="${(H * 0.085).toFixed(1)}" width="${(W * 0.032).toFixed(1)}" height="4" rx="2" fill="${ink.accent}" opacity="0.95"/>`;
+/* ---------- 变奏 2：地平线 + 人影（最克制的一张） ---------- */
+else if (variant === 1) {
+  const fx = W * (0.3 + rnd() * 0.4);
+  // 地面
+  art += `<rect x="0" y="${HZ.toFixed(0)}" width="${W}" height="${(H - HZ).toFixed(0)}" fill="#000" opacity="var(--cv-ground-op)"/>`;
+  // 地平线暖光带
+  art += `<rect x="0" y="${(HZ - 2).toFixed(0)}" width="${W}" height="3" fill="${cv('warm')}" opacity="0.92"/>`;
+  glow += `<rect x="0" y="${(HZ - 3).toFixed(0)}" width="${W}" height="5" fill="${cv('warm')}"/>`;
+  // 人影
+  art += `<g transform="translate(${fx.toFixed(0)} ${(HZ + fH * 1.1).toFixed(0)})">
+    <circle cx="0" cy="${(-fH).toFixed(1)}" r="${(fH * 0.19).toFixed(2)}" fill="#05080e"/>
+    <path d="M ${(-fH * 0.17).toFixed(2)} ${(-fH * 0.78).toFixed(2)} L ${(fH * 0.17).toFixed(2)} ${(-fH * 0.78).toFixed(2)} L ${(fH * 0.13).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(fH * 0.06).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(fH * 0.055).toFixed(2)} 0 L ${(-fH * 0.055).toFixed(2)} 0 L ${(-fH * 0.06).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(-fH * 0.13).toFixed(2)} ${(-fH * 0.3).toFixed(2)} Z" fill="#05080e"/>
+  </g>`;
+}
+
+/* ---------- 变奏 3：星野 + 小行星 ---------- */
+else if (variant === 2) {
+  // 星点
+  for (let i = 0; i < 130; i++) {
+    const sx = rnd() * W;
+    const sy = rnd() * HZ;
+    const sr = 0.8 + rnd() * 1.6;
+    const so = 0.2 + rnd() * 0.65;
+    art += `<circle cx="${sx.toFixed(0)}" cy="${sy.toFixed(0)}" r="${sr.toFixed(1)}" fill="#fff" opacity="${so.toFixed(2)}"/>`;
+  }
+  // 一颗有明显体积的小天体
+  const bx = W * (0.16 + rnd() * 0.6);
+  const by = H * (0.16 + rnd() * 0.28);
+  const br = K * (0.1 + rnd() * 0.07);
+  glow += `<circle cx="${bx.toFixed(0)}" cy="${by.toFixed(0)}" r="${(br * 1.5).toFixed(0)}" fill="${cv('body')}" opacity="0.25"/>`;
+  art += `<circle cx="${bx.toFixed(0)}" cy="${by.toFixed(0)}" r="${br.toFixed(0)}" fill="${cv('body')}" opacity="0.95"/>`;
+  // 地平线
+  art += `<rect x="0" y="${HZ.toFixed(0)}" width="${W}" height="${(H - HZ).toFixed(0)}" fill="#000" opacity="var(--cv-ground-op)"/>`;
+  art += `<rect x="0" y="${(HZ - 1).toFixed(0)}" width="${W}" height="2" fill="${cv('warm')}" opacity="0.8"/>`;
+  glow += `<rect x="0" y="${(HZ - 2).toFixed(0)}" width="${W}" height="4" fill="${cv('warm')}"/>`;
+}
+
+/* ---------- 变奏 4：体积光柱 ---------- */
+else if (variant === 3) {
+  const lx = W * (0.25 + rnd() * 0.5);
+  // 光柱：从上方斜射下来
+  art += `<path d="M ${(lx - K * 0.12).toFixed(0)} 0 L ${(lx + K * 0.12).toFixed(0)} 0 L ${(lx + K * 0.52).toFixed(0)} ${HZ.toFixed(0)} L ${(lx - K * 0.26).toFixed(0)} ${HZ.toFixed(0)} Z" fill="${cv('body')}" opacity="0.14"/>`;
+  glow += `<path d="M ${(lx - K * 0.16).toFixed(0)} 0 L ${(lx + K * 0.16).toFixed(0)} 0 L ${(lx + K * 0.6).toFixed(0)} ${HZ.toFixed(0)} L ${(lx - K * 0.34).toFixed(0)} ${HZ.toFixed(0)} Z" fill="${cv('body')}" opacity="0.5"/>`;
+  // 光源
+  art += `<ellipse cx="${lx.toFixed(0)}" cy="0" rx="${(K * 0.1).toFixed(0)}" ry="${(K * 0.05).toFixed(0)}" fill="${cv('body')}" opacity="0.5"/>`;
+  glow += `<ellipse cx="${lx.toFixed(0)}" cy="0" rx="${(K * 0.2).toFixed(0)}" ry="${(K * 0.12).toFixed(0)}" fill="${cv('body')}" opacity="0.7"/>`;
+  // 地面与地平线
+  art += `<rect x="0" y="${HZ.toFixed(0)}" width="${W}" height="${(H - HZ).toFixed(0)}" fill="#000" opacity="var(--cv-ground-op)"/>`;
+  art += `<rect x="0" y="${(HZ - 2).toFixed(0)}" width="${W}" height="3" fill="${cv('warm')}" opacity="0.9"/>`;
+  glow += `<rect x="0" y="${(HZ - 3).toFixed(0)}" width="${W}" height="5" fill="${cv('warm')}"/>`;
+}
+
+/* ---------- 变奏 5：巨大天体压在平原上（最接近首屏的一张） ---------- */
+else if (variant === 4) {
+  const cx = W * (0.34 + rnd() * 0.34);
+  const R = K * (1.3 + rnd() * 0.3);
+  const cy = HZ - R * 0.5;
+  glow += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${(R * 1.12).toFixed(0)}" fill="${cv('body')}" opacity="0.28"/>`;
+  art += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${R.toFixed(0)}" fill="${cv('body')}" opacity="0.88"/>`;
+  // 边缘暗弧，让球面有体积
+  art += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${(R * 0.97).toFixed(0)}" fill="none" stroke="#000" stroke-width="${(R * 0.06).toFixed(0)}" opacity="var(--cv-rim-op)"/>`;
+  // 地面
+  art += `<rect x="0" y="${HZ.toFixed(0)}" width="${W}" height="${(H - HZ).toFixed(0)}" fill="#000" opacity="var(--cv-ground-op)"/>`;
+  art += `<rect x="0" y="${(HZ - 2).toFixed(0)}" width="${W}" height="3" fill="${cv('warm')}" opacity="0.9"/>`;
+  glow += `<rect x="0" y="${(HZ - 3).toFixed(0)}" width="${W}" height="5" fill="${cv('warm')}"/>`;
+  // 人影
+  const fx = W * (0.62 + rnd() * 0.16);
+  art += `<g transform="translate(${fx.toFixed(0)} ${(HZ + fH * 1.1).toFixed(0)})">
+    <circle cx="0" cy="${(-fH).toFixed(1)}" r="${(fH * 0.19).toFixed(2)}" fill="#05080e"/>
+    <path d="M ${(-fH * 0.17).toFixed(2)} ${(-fH * 0.78).toFixed(2)} L ${(fH * 0.17).toFixed(2)} ${(-fH * 0.78).toFixed(2)} L ${(fH * 0.13).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(fH * 0.06).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(fH * 0.055).toFixed(2)} 0 L ${(-fH * 0.055).toFixed(2)} 0 L ${(-fH * 0.06).toFixed(2)} ${(-fH * 0.3).toFixed(2)} L ${(-fH * 0.13).toFixed(2)} ${(-fH * 0.3).toFixed(2)} Z" fill="#05080e"/>
+  </g>`;
+}
+
+/* ---------- 变奏 6：双天体 + 地平线（最开阔的一张） ---------- */
+else {
+  // 主体：大天体弧面
+  const cx = W * (0.5 + rnd() * 0.22);
+  const R = K * (1.0 + rnd() * 0.28);
+  const cy = HZ - R * 0.72;
+  glow += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${(R * 1.14).toFixed(0)}" fill="${cv('body')}" opacity="0.26"/>`;
+  art += `<circle cx="${cx.toFixed(0)}" cy="${cy.toFixed(0)}" r="${R.toFixed(0)}" fill="${cv('body')}" opacity="0.82"/>`;
+  // 伴星
+  const sx = W * rnd() * 0.3 + W * 0.06;
+  const sy = H * (0.12 + rnd() * 0.18);
+  const sR = K * (0.055 + rnd() * 0.04);
+  glow += `<circle cx="${sx.toFixed(0)}" cy="${sy.toFixed(0)}" r="${(sR * 1.8).toFixed(0)}" fill="${cv('body')}" opacity="0.3"/>`;
+  art += `<circle cx="${sx.toFixed(0)}" cy="${sy.toFixed(0)}" r="${sR.toFixed(0)}" fill="${cv('body')}" opacity="0.9"/>`;
+  // 星点
+  for (let i = 0; i < 60; i++) {
+    const px = rnd() * W;
+    const py = rnd() * HZ * 0.9;
+    art += `<circle cx="${px.toFixed(0)}" cy="${py.toFixed(0)}" r="${(0.7 + rnd() * 1.3).toFixed(1)}" fill="#fff" opacity="${(0.15 + rnd() * 0.5).toFixed(2)}"/>`;
+  }
+  // 地面
+  art += `<rect x="0" y="${HZ.toFixed(0)}" width="${W}" height="${(H - HZ).toFixed(0)}" fill="#000" opacity="var(--cv-ground-op)"/>`;
+  art += `<rect x="0" y="${(HZ - 2).toFixed(0)}" width="${W}" height="3" fill="${cv('warm')}" opacity="0.88"/>`;
+  glow += `<rect x="0" y="${(HZ - 3).toFixed(0)}" width="${W}" height="5" fill="${cv('warm')}"/>`;
+}
 
 const safeTitle = title.replace(/[<>&]/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[ch] as string);
 ---
@@ -181,49 +238,59 @@ const safeTitle = title.replace(/[<>&]/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '
 >
   <title>{safeTitle}</title>
   <defs>
-    <linearGradient id={`cv${uid}`} x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color={ink.a}></stop>
-      <stop offset="1" stop-color={ink.b}></stop>
+    <!-- 天空：顶部深、靠近地平线转亮。所有构图共用同一套天空。 -->
+    <linearGradient id={`sk${uid}`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color={cv('b')}></stop>
+      <stop offset="0.55" stop-color={cv('a')}></stop>
+      <stop offset="1" stop-color={cv('haze')}></stop>
     </linearGradient>
 
-    {/* 真发光：把同一组图形模糊一份垫在底层当辉光。
-        比单纯调高透明度像样得多——发光要有"溢出来"的扩散，不能只是变亮。 */}
-    <filter id={`gl${uid}`} x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="20"></feGaussianBlur>
+    <!-- 真发光：把同一组图形模糊一份垫在底层当辉光。
+        比单纯调高透明度像样得多——发光要有"溢出来的扩散"，不能只是变亮。 -->
+    <filter id={`gl${uid}`} x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="18"></feGaussianBlur>
     </filter>
 
-    {/* 暗角：四边压暗，中间的图形才有被光照到的感觉。
-        压到 0.34 就够——再深会把本来就细的线条一起吃掉。 */}
-    <radialGradient id={`vg${uid}`} cx="0.5" cy="0.42" r="0.78">
-      <stop offset="0.5" stop-color="#000" stop-opacity="0"></stop>
-      <stop offset="1" stop-color="#000" stop-opacity="0.34"></stop>
+    <!-- 更重的雾化，给天体光晕用 -->
+    <filter id={`fg${uid}`} x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="34"></feGaussianBlur>
+    </filter>
+
+    <!-- 暗角：四边压暗，中间的图形才有被光照到的感觉 -->
+    <radialGradient id={`vg${uid}`} cx="0.5" cy="0.45" r="0.8">
+      <stop offset="0.45" stop-color="#000" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#000" stop-opacity="var(--cv-vignette-op)"></stop>
     </radialGradient>
 
-    {/* 顶部一道极淡的高光，模拟屏幕受光 */}
+    <!-- 顶部一道极淡的高光，模拟屏幕受光 -->
     <linearGradient id={`sh${uid}`} x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.1"></stop>
-      <stop offset="0.42" stop-color="#fff" stop-opacity="0"></stop>
+      <stop offset="0" stop-color="#fff" stop-opacity="0.08"></stop>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0"></stop>
     </linearGradient>
-
-    {/* 封面内部的技术网格：这一层是"工程感"最直接的来源 */}
-    <pattern id={`gd${uid}`} width="40" height="40" patternUnits="userSpaceOnUse">
-      <path
-        d="M40 0H0V40"
-        fill="none"
-        stroke={ink.line}
-        stroke-width="1"
-        opacity="0.2"></path>
-    </pattern>
   </defs>
 
-  <rect width={W} height={H} fill={`url(#cv${uid})`}></rect>
-  <rect width={W} height={H} fill={`url(#gd${uid})`} opacity="0.55"></rect>
+  <!-- 天空 -->
+  <rect width={W} height={H} fill={cv('b')}></rect>
+  <rect width={W} height={HZ} fill={`url(#sk${uid})`}></rect>
 
-  {/* 先模糊一层当辉光，再叠一层清晰的图形 */}
-  <g filter={`url(#gl${uid})`} opacity="0.95">
-    <Fragment set:html={art} />
+  {/* 辉光层：先模糊一份垫底，这是"发光"的关键 */}
+  <g filter={`url(#fg${uid})`} opacity="0.85">
+    <Fragment set:html={glow} />
   </g>
+
+  {/* 图形层 */}
   <Fragment set:html={art} />
+
+  {/* 空气透视：地平线附近的薄雾，让远近有层次 */}
+  <rect
+    x="0"
+    y={HZ - H * 0.22}
+    width={W}
+    height={H * 0.3}
+    fill={cv('haze')}
+    opacity="0.3"
+    filter={`url(#gl${uid})`}
+  ></rect>
 
   <rect width={W} height={H} fill={`url(#vg${uid})`}></rect>
   <rect width={W} height={H} fill={`url(#sh${uid})`}></rect>

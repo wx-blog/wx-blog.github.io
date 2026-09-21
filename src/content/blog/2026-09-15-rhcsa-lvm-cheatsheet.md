@@ -19,6 +19,11 @@ Logical Volume (LV)   ← 逻辑卷，真正格式化和挂载的东西
 
 记一句话就够：**PV 是砖，VG 是桶，LV 是舀出来的水。**
 
+:::note
+考试环境里 `/dev/sdb` 通常是给你操作的那块空盘。动手前先跑 `lsblk` 确认，
+别把系统盘上的分区给改了。
+:::
+
 ## 建
 
 ```bash
@@ -44,6 +49,11 @@ mkdir -p /var/www/html
 echo "/dev/vgdata/lvweb /var/www/html xfs defaults 0 0" >> /etc/fstab
 mount -a
 ```
+
+:::warn
+`mkfs` 会**清空**目标设备上的所有数据，而且没有二次确认。
+敲命令前务必回头看一眼设备名是不是你要的那一个。
+:::
 
 ## 扩
 

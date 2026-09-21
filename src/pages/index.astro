@@ -2,50 +2,93 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
 import { collectTags, getPublishedPosts, tagUrl, readingTime } from '../utils/posts';
-import { SITE } from '../consts';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 5);
 const tags = collectTags(posts);
 const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
+
+/* 首屏展示的技术方向：取标签里排在前面的几个。
+   为什么用标签而不是手写一份方向清单：
+   手写清单需要跟实际文章永远保持同步——加了新方向忘了改这里，
+   首屏就会出现点进去空空如也的死链。用标签则天然自洽：
+   有文章才有标签，没文章的方向不会出现在首屏。
+   上限 6 个（两行三列），再多首屏就被撑长了。 */
+const topics = tags.slice(0, 6);
 ---
 
 <BaseLayout>
-  <section class="hero">
-    <div class="hero__glow" aria-hidden="true"></div>
+  <!--
+    首屏：居中极简构图。
+    ------------------------------------------------------------
+    这一版的关键判断：**极简 ≠ 空**。
 
-    <div class="wrap hero__inner">
-      <p class="hero__eyebrow mono-label" data-reveal>
+    上一版撤掉粒子场之后，首屏只剩「文字 + 一块窄胶囊（数据条）」，
+    左右两侧全空。当时的想法是"越少越高级"，但实际观感是
+    「没什么东西，很单调」——因为极简的高级感来自
+    **少量实体 + 大留白**，实体本身要有分量和层次。
+    只剩一块小胶囊飘在空白中央，读起来是"没做完"，不是"克制"。
+
+    所以这一版加回实体，但**加的是同一套语言里的实体**：
+      · 数据条     —— 一条横向的玻璃工具条；
+      · 技术方向卡 —— 3×2 的玻璃网格，每张是一块玻璃。
+
+    首屏因此从 1 块玻璃变成 7 块，但构图没变（仍然居中、单列、
+    无装饰），信息密度仍然很低。变的只是"实体感"。
+
+    至于玻璃为什么看起来更像玻璃了，见 global.css 第 26 节——
+    简单说：**玻璃的可见度取决于它背后有没有可模糊的东西**，
+    光给玻璃加材质是不够的，还得在它背后铺光。
+
+    粒子场没有再回来：它和极简是两种语言（粒子靠密度和光，
+    画面是"满"的；极简靠留白和材质，画面是"空"的），
+    而现在加的是**材质**，不是**效果**——这两者不冲突。
+  -->
+  <section class="hero">
+    <div class="hero__inner">
+      <p class="hero__eyebrow" data-hero="1">
         <span class="pulse-dot" aria-hidden="true"></span>
         <span>技术笔记 · 学习记录</span>
       </p>
 
-      <h1 class="hero__title" data-reveal style="--d:.05s">
+      <h1 class="hero__title" data-hero="2">
         把踩过的坑，<br />写成<span class="grad-text">能复现</span>的笔记。
       </h1>
 
-      <p class="hero__lede" data-reveal style="--d:.12s">
-        Linux 与运维、Kubernetes 与混沌工程，以及备考、毕设和大创路上的实验记录。写糙一点没关系，命令能跑通、结论站得住就行。
+      <p class="hero__lede" data-hero="3">
+        Linux 与云计算方向的实验笔记，以及备考、毕设和大创路上的一些记录。
       </p>
 
-      <div class="hero__meta" data-reveal style="--d:.2s">
+      <!-- 毛玻璃数据条：首屏的"横向实体" -->
+      <div class="hero__glass glass" data-hero="4">
         <span><strong>{posts.length}</strong> 篇文章</span>
-        <span class="hero__dot">·</span>
+        <span class="hero__dot" aria-hidden="true">·</span>
         <span><strong>{tags.length}</strong> 个标签</span>
-        <span class="hero__dot">·</span>
+        <span class="hero__dot" aria-hidden="true">·</span>
         <span>累计约 <strong>{totalMinutes}</strong> 分钟阅读</span>
-        <span class="hero__dot">·</span>
+        <span class="hero__dot" aria-hidden="true">·</span>
         <a href="/rss.xml">RSS 订阅</a>
       </div>
 
-      <a class="hero__scroll mono-label" href="#latest" data-reveal style="--d:.28s">
-        scroll ↓
-      </a>
+      {
+        topics.length > 0 && (
+          /* 技术方向卡：首屏的"块状实体"。
+             整卡可点，所以内部不再放链接——一个 <a> 就是整张卡。 */
+          <div class="hero__topics" data-hero="5">
+            {topics.map(([tag, count]) => (
+              <a class="glass glass--hover glass-tile" href={tagUrl(tag)}>
+                <span class="glass-tile__name">{tag}</span>
+                <span class="glass-tile__meta">{count} 篇</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
     </div>
 
-    <div class="hud" aria-hidden="true">
-      <span></span><span></span><span></span><span></span>
-    </div>
+    <a class="hero__scroll" href="#latest" aria-label="向下滚动">
+      <span aria-hidden="true">↓</span>
+    </a>
   </section>
 
   <section class="section" id="latest">
@@ -86,7 +129,7 @@ const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
 
   <section class="outro">
     <div class="wrap">
-      <div class="outro__box" data-reveal>
+      <div class="outro__box glass" data-reveal>
         <h2 class="outro__title">这些笔记值不值得读？</h2>
         <p class="outro__text">
           标准只有一条：照着做能复现。写下的每条命令我自己跑过，踩坑的地方会写明当时的报错和最后怎么绕过去的。
