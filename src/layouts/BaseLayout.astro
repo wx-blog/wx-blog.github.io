@@ -24,7 +24,22 @@ const ogImage = new URL('og-default.png', siteUrl).href;
 ---
 
 <!doctype html>
-<html lang={SITE.lang}>
+<!--
+  主题直接写在 <html> 上，不等 JS。
+  ------------------------------------------------------------
+  早先只靠 head 里的脚本添加 `data-theme`，有两个问题：
+
+  ① **首屏要等脚本执行才有主题**，样式应用与脚本执行之间的缝隙里
+     会闪一下亮色（这也是当初"先亮一下再变暗"的成因）；
+  ② 站点用了 ClientRouter，站内跳转是 SPA 式替换 body。
+     属性一旦没被保住，`:root[data-theme='dark']` 立刻失效，
+     页面退回亮色 —— 这就是用户说的「点进文档再返回来，
+     就变成了白天模式」。
+
+  写成静态属性后，服务端渲染出来的 HTML 本身就带主题，两个问题一起解决。
+  （CSS 那边也做了对应改动：暗色变量已经从 `:root[data-theme='dark']`
+    搬到 `:root`，不再依赖这个属性。两层保险。） -->
+<html lang={SITE.lang} data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -42,8 +57,12 @@ const ogImage = new URL('og-default.png', siteUrl).href;
     <link rel="preload" as="font" type="font/woff2" href="/fonts/noto-sans-sc.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin.woff2" crossorigin />
 
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    {/* 浏览器 UI 配色（移动端状态栏 / 桌面地址栏）：
+        站点只有暗色，所以不再按系统偏好给两个值 —— 直接锁成
+        站点底色 #070a11（与 --bg 一致）。
+        原来那条 `prefers-color-scheme: light` 会让浅色系统的用户
+        看到一条白色状态栏压在深色页面上，很突兀。 */}
+    <meta name="theme-color" content="#070a11" />
 
     <meta property="og:type" content={type} />
     <meta property="og:title" content={pageTitle} />

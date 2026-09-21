@@ -231,7 +231,23 @@
   --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-:root[data-theme='dark'] {
+/* ⚠️ 这里原来写的是 `:root[data-theme='dark']`，现在改成 `:root`。
+   ------------------------------------------------------------
+   原因：本站**只做暗色**（用户明确「我是只要暗夜模式，不要白天模式」），
+   而把暗色变量挂在属性选择器上会带来一个真实故障：
+
+   `data-theme` 是运行时由 JS 写到 <html> 上的。站点用了 astro 的
+   ClientRouter（视图过渡），站内跳转是 SPA 式替换 body，
+   一旦某次导航后这个属性没被保住，**属性选择器立刻失效**，
+   页面就退回上面那套 `:root` 的**亮色值**（`--bg: #f5f7fa`）——
+   整页变白。用户的原话是「点进文档再返回来，就变成了白天模式」。
+
+   改成 `:root` 之后，暗色变量**不再依赖任何属性**：属性丢了也还是暗色。
+   这一层是根治。它在文件里的位置在原 `:root`（亮色值）之后，
+   同特异性下后者胜出，所以那套亮色值会被整体覆盖。
+   （`data-theme="dark"` 属性仍保留在 <html> 上——下面还有一批
+    `:root[data-theme='dark'] .xxx` 的后代选择器要用到它。） */
+:root {
   color-scheme: dark;
   /* 不用纯黑：深处带一点冷蓝，配星野才不会显脏 */
   --bg: #070a11;
@@ -637,38 +653,9 @@ main {
   font-weight: 500;
 }
 
-.theme-toggle {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  margin-left: 0.45rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    color 0.2s var(--ease),
-    border-color 0.2s var(--ease);
-}
-
-.theme-toggle:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-
-.theme-toggle svg {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-/* 深色下显示太阳（点击切回浅色），浅色下显示月亮 */
-:root[data-theme='dark'] .theme-toggle .icon-moon,
-:root:not([data-theme='dark']) .theme-toggle .icon-sun {
-  display: none;
-}
+/* （原「主题切换按钮」样式整段删除：站点只做暗色，Header 里早已没有
+    .theme-toggle 这个元素，这几条规则是纯死代码。留着反而会误导后来
+    改动的人以为还能切主题。） */
 
 /* --- 7. 页脚 -------------------------------------------------------------- */
 
@@ -1393,9 +1380,21 @@ a.tag:hover {
   background: var(--bg-subtle);
 }
 
-/* 代码高亮：亮/暗双主题（Astro Shiki dual theme） */
-:root[data-theme='dark'] .astro-code,
-:root[data-theme='dark'] .astro-code span {
+/* 代码高亮：只用暗色那一套（Astro Shiki dual theme）
+   ------------------------------------------------------------
+   ⚠️ 这里原来是 `:root[data-theme='dark'] .astro-code`，现在改成无条件。
+
+   为什么必须改：Shiki 双主题会在每个 token 上同时输出两套变量 ——
+   `--shiki`（亮色）和 `--shiki-dark`（暗色），靠 CSS 选择器二选一。
+   匹配不上「dark」那条时，命中的就是 Shiki 自带的**亮色**默认样式，
+   代码块会整片变白 —— 而文章页恰恰是代码块最密集的地方。
+
+   也就是说：`data-theme` 属性丢没丢，对 `--bg` 这类自定义变量影响
+   只是"底色变了"，对代码块影响是"每个 token 换一套配色"，
+   后者才是「点进一篇文档，满屏代码白得刺眼」的直接来源。
+   站点既然只做暗色，这里就没有二选一的必要了。 */
+.astro-code,
+.astro-code span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
   font-style: var(--shiki-dark-font-style) !important;
@@ -2738,10 +2737,6 @@ a.tag:hover {
   background: color-mix(in srgb, #d99a3c 7%, var(--bg-subtle));
 }
 .prose .callout--warn .callout__title {
-  color: #b07c22;
-}
-
-:root[data-theme='dark'] .prose .callout--warn .callout__title {
   color: #e8b45e;
 }
 
@@ -2750,10 +2745,6 @@ a.tag:hover {
   background: color-mix(in srgb, #d9534f 7%, var(--bg-subtle));
 }
 .prose .callout--danger .callout__title {
-  color: #c0392b;
-}
-
-:root[data-theme='dark'] .prose .callout--danger .callout__title {
   color: #ef7a76;
 }
 
@@ -3071,7 +3062,10 @@ a.tag:hover {
 /* ---------- 26.2 玻璃令牌提档（全站生效） ----------
    改令牌而不是改每一处 .glass，是为了让页头、代码块、收尾面板
    这些早就用了变量的地方一起提上来，避免"某处还是旧质感"的参差。 */
-:root[data-theme='dark'] {
+/* 同文件开头那条的理由：玻璃令牌也不挂属性选择器了。
+   否则 data-theme 一丢，这块就退回上一节里那套**亮色**玻璃令牌
+   （白度 0.62 起步），在暗背景上会显得发白发脏。 */
+:root {
   /* 0.075 → 0.088：面板边界更明确，但还没到"白色块"的程度。
      这条数值改起来很敏感，0.1 以上就会开始压住背后的光。 */
   --glass-bg: rgba(255, 255, 255, 0.088);
