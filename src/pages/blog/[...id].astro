@@ -1,7 +1,6 @@
 ---
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Cover from '../../components/Cover.astro';
 import {
   formatDate,
   getNeighbors,
@@ -31,6 +30,10 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
 ---
 
 <BaseLayout title={post.data.title} description={post.data.description} type="article">
+  {/* 阅读进度条：纯 CSS scroll-driven 动画驱动，零 JS（见 global.css 28.5）。
+      放在最外层是为了让 fixed 定位不受 post-body 的 grid 影响。 */}
+  <div class="reading-progress" aria-hidden="true"></div>
+
   <div class="wrap wrap--post">
     <article>
       <header class="post-hero">
@@ -64,10 +67,6 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
           )
         }
       </header>
-
-      <div class="post-banner">
-        <Cover seed={post.id} title={post.data.title} ratio="3:1" />
-      </div>
 
       <div class="post-body">
         <div class="prose">

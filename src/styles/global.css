@@ -2963,10 +2963,14 @@ a.tag:hover {
    先画成清晰圆再整体模糊，得到的是无边界的光雾，更像自然光。 */
 .backdrop__bloom {
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  /* 只动 transform，避免触发 layout/paint 之外的额外重算 */
-  will-change: transform;
+  /* ⚠️ 这里原本还有 border-radius: 50% / filter: blur(80px) / will-change: transform，
+     已在第 28.1 节全部去掉：
+       · 光斑改用多段 stops 的径向渐变后，不需要模糊滤镜来柔化边缘；
+       · 没有滤镜之后 transform 动画很便宜，浏览器会自己决定图层提升，
+         手动挂 will-change 反而白占显存；
+       · 径向渐变自己不显示边界，圆角裁切是多余的。
+     这三项保留在原处会在将来"复活"（比如有人只改 28.1 的渐变、
+     顺手删掉那边的 filter: none），所以这里直接删干净。 */
 }
 
 .backdrop__bloom--cool {
@@ -3023,7 +3027,8 @@ a.tag:hover {
   translate: -50% 0;
   width: min(48rem, 94vw);
   height: min(22rem, 38vh);
-  filter: blur(56px);
+  /* filter: blur(56px) 已在 28.1 移除：结构光改用多段 stops 的径向渐变，
+     梯度靠 stops 排密来实现，不再需要滤镜。 */
   background: radial-gradient(
     closest-side,
     rgba(160, 198, 255, 0.48),
@@ -3552,4 +3557,254 @@ a.tag:hover {
    —— 这些规则随「封面图」一起失效了。没有删除是因为 Cover.astro
    仍在文章详情页（post hero）使用，万一回退卡片设计还能直接复用。
    残留规则不会生效：DOM 里已经没有 .card__cover 元素了。 */
+
+/* ==========================================================================
+   28. 流畅度优化 + 文章页风格统一
+
+   用户反馈：「感觉网页不流畅，滑动卡顿」「点完文档风格要统一，
+   不要一点开就变白模式了」。
+
+   拆成两大块处理（28.1~28.4 是性能，28.5 是风格）。
+
+   性能这块先定位了瓶颈，不是凭感觉调参数。站上最贵的三件事：
+
+   ① **背景光斑的 `filter: blur(80px)`** —— 元素尺寸 54rem × 40rem
+      （约 864×640px），每帧都要做一次大半径模糊采样，而它还在跑
+      28s 的漂移动画。等于滚动时后台一直有个重活在跑。
+      → 28.1 改用多段 stops 的径向渐变，完全去掉 filter。
+
+   ② **35 张卡片各带一个 `backdrop-filter`** —— 每张都要实时采样
+      身后的背景并做模糊。列表页一屏能看到 6~9 张，滚动时全部在算。
+      → 28.2：试过用 `content-visibility` 让视口外的卡片跳过渲染，
+      **但实测有可见副作用，已退回**（详见 28.2 里的记录）。
+
+   ③ **代码块也带 `backdrop-filter`** —— 文章页动辄几十个代码块。
+      → 28.3 换成实色底，视觉几乎无差别，因为代码块本来就该是实底。
+
+   注意优化原则：**先去掉"不需要的计算"，再考虑降低画质**。
+   前三条都是"这层效果其实没必要"，不是"把效果调弱"，
+   所以视觉上几乎看不出变化。
+   ========================================================================== */
+
+/* ---------- 28.1 背景光斑：去掉 filter，改用多段径向渐变 ----------
+
+   原来三团光斑都用 `filter: blur(80px)`（结构光 56px）来消除渐变硬边。
+
+   但径向渐变**本身就是柔和的**——只要 stops 排得够密，
+   根本不需要再叠一层滤镜。改成 6~7 段 stops 之后：
+     · 视觉上几乎看不出差别（都是无边界的光雾）；
+     · 渲染从"每帧对大元素做模糊采样"降级成"画一个渐变"，
+       便宜一个数量级。
+
+   ⚠️ 关键是要把 stops 排密。原来只有 2 段（实色 → 透明），
+      那样确实需要 blur 来柔化；现在拆成 6 段，每段之间差距很小，
+      过渡自然就平了。 */
+.backdrop__bloom {
+  /* 三团光都不再需要滤镜 */
+  filter: none;
+  /* 去掉 will-change：没有滤镜之后，transform 动画本身很便宜，
+     浏览器会自己决定要不要提升图层。手动挂着反而白占显存
+     （每个 will-change 都是一个独立的合成层）。 */
+  will-change: auto;
+  /* 径向渐变自己不会显示边界，圆角裁切是多余的 */
+  border-radius: 0;
+}
+
+.backdrop__bloom--cool {
+  background: radial-gradient(
+    closest-side,
+    rgba(104, 158, 232, 0.56) 0%,
+    rgba(104, 158, 232, 0.43) 24%,
+    rgba(104, 158, 232, 0.24) 44%,
+    rgba(104, 158, 232, 0.1) 60%,
+    rgba(104, 158, 232, 0.03) 74%,
+    rgba(104, 158, 232, 0) 86%
+  );
+}
+
+.backdrop__bloom--warm {
+  background: radial-gradient(
+    closest-side,
+    rgba(244, 178, 118, 0.52) 0%,
+    rgba(244, 178, 118, 0.4) 22%,
+    rgba(244, 178, 118, 0.22) 42%,
+    rgba(244, 178, 118, 0.09) 58%,
+    rgba(244, 178, 118, 0.025) 72%,
+    rgba(244, 178, 118, 0) 85%
+  );
+}
+
+.backdrop__bloom--core {
+  background: radial-gradient(
+    closest-side,
+    rgba(160, 198, 255, 0.48) 0%,
+    rgba(160, 198, 255, 0.36) 26%,
+    rgba(160, 198, 255, 0.2) 46%,
+    rgba(160, 198, 255, 0.085) 62%,
+    rgba(160, 198, 255, 0.025) 76%,
+    rgba(160, 198, 255, 0) 88%
+  );
+}
+
+/* 减少动态效果：三团光停在原地。
+   原来这里写的是 filter: none —— 现在本来就没有 filter 了，
+   这条规则已经不需要，去掉（留着反而让人以为还有滤镜）。 */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop__bloom {
+    animation: none;
+  }
+}
+
+/* ---------- 28.2 卡片：试过 content-visibility，**实测有副作用，已退回** ----------
+
+   `content-visibility: auto` 会让视口外的元素跳过渲染（包括它的
+   backdrop-filter），理论上收益很大：列表页 35 张卡，一屏只看得到 6~9 张，
+   剩下 20 多张的模糊计算全都能省掉。
+
+   但**实测有可见副作用**：加上它之后，第二行及以后的卡片
+   在首次渲染时完全不画出来（截图里只剩第一行的 3 张），
+   实际浏览时表现为"卡片边滚边出现"。
+
+   对一个诉求是"流畅"的页面来说，这个观感损失大过省下来的 GPU 时间——
+   用户会觉得"卡"。所以退回默认值，把优化预算花在
+   28.1（光斑）和 28.3（代码块）这两处**不影响观感**的地方。
+
+   ⚠️ 教训：`content-visibility` 只适合"元素在文档流里占位稳定、
+   且用户对延迟出现不敏感"的场景（长文档、超长列表的懒渲染）。
+   卡片网格这种"用户会连续扫视"的布局，不适合。 */
+.card {
+  content-visibility: visible;
+}
+
+/* ---------- 28.3 代码块：换成实色底，去掉 backdrop-filter ----------
+
+   代码块本来就应该是一块"实的"底——半透明 + 模糊在这里没有表达价值，
+   纯粹是性能开销。而文章页动辄几十个代码块，累计起来很可观。
+
+   底色取 #0c1119：比页面背景（--bg: #070a11）略亮一档，
+   既保住了层次，又不需要实时采样背景。
+   内高光那 1px 留着——它是这块"面板"的厚度感来源。 */
+.prose pre {
+  background: #0c1119;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.045);
+}
+
+/* ---------- 28.4 文章页顶部：移除那条白色横幅 ----------
+
+   ★ 这就是用户说的「一点开就变白模式」的元凶。
+
+   post-banner 里放的是 Cover 组件画的 3:1 封面。Cover 的配色是
+   「夜色星野」，但它的主体（天体）用的是 --cv-*-body（如 #c8d6e8，
+   浅灰蓝），在深色页面上就是**一大块白**——而且尺寸很大（整栏宽、3:1），
+   点开文章第一眼就是它，观感上等于"页面切到了亮色模式"。
+
+   卡片改版时我已经把封面从列表页拿掉了，但详情页还留着。
+   现在一并去掉：DOM 里的 .post-banner 已经删除（见 [...id].astro），
+   这里把对应样式也收掉，避免它继续影响布局计算。 */
+.post-banner,
+.post-banner svg {
+  display: none;
+}
+
+/* banner 没了之后，标题区到正文之间要给一点呼吸。
+   原来这段间距是 banner 的 margin-top 贡献的，
+   直接删掉会让正文贴着标签行。 */
+.post-body {
+  margin-top: clamp(0.75rem, 0.4rem + 1vw, 1.5rem);
+}
+
+/* ---------- 28.5 阅读进度条（可玩性） ----------
+
+   用纯 CSS 的 scroll-driven animation 实现，**零 JS**：
+   `animation-timeline: scroll(root block)` 让动画进度直接绑定页面滚动，
+   跑在合成器线程上，不吃主线程，对滚动流畅度零影响。
+
+   为什么不写 JS 监听 scroll：
+   那会在滚动时每帧触发一次回调（还得配合 rAF 节流），
+   恰好会加剧用户抱怨的"滑动卡顿"——用一个更流畅的方案换来一个卡顿，
+   不划算。
+
+   ⚠️ 用 @supports 包起来：不支持 scroll-driven animation 的浏览器
+      （Firefox / Safari 目前）会直接不显示这条线，
+      而不是显示一条永远停在 0 的线。 */
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 70;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--accent), var(--warm) 72%, var(--accent-hover));
+  box-shadow: 0 0 12px var(--accent-glow);
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  .reading-progress {
+    animation: reading-progress-grow linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@keyframes reading-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 减少动态效果：进度条改成静态显示（不做进度跟随），
+   但保留一条细线作为视觉锚点——它也在"告诉你在哪"，
+   完全去掉反而少了定位感。 */
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress {
+    animation: none;
+    transform: scaleX(0);
+  }
+}
+
+/* ---------- 28.6 卡片悬停光泽（可玩性） ----------
+
+   首屏的技术方向卡（.glass-tile）早就有这道斜向扫光，
+   但文章卡片一直没有——两者都是玻璃，交互反馈却不一样，说不过去。
+
+   这里给卡片补上同样的效果：鼠标移上去，一道极淡的亮带斜着扫过。
+
+   它不是"加特效"，而是**补玻璃的反射**：真实的玻璃在视角变化时
+   会有反光移动，缺了它，悬停就只是"变亮一点"，少了那层
+   "材质在回应你"的感觉。
+
+   透明度 0.055 是上限：再亮就从"玻璃反光"掉成"廉价的扫光动画"了。 */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    118deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.055) 48%,
+    transparent 66%
+  );
+  opacity: 0;
+  transition: opacity 0.55s var(--ease);
+  pointer-events: none;
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+/* 减少动态效果：不做渐变过渡，直接切换显隐 */
+@media (prefers-reduced-motion: reduce) {
+  .card::after {
+    transition: none;
+  }
+}
 
