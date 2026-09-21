@@ -1,6 +1,6 @@
 ---
 import type { Post } from '../utils/posts';
-import { formatDate, postCode, postUrl, readingTime, tagUrl } from '../utils/posts';
+import { formatDate, postUrl, readingTime, tagUrl } from '../utils/posts';
 
 interface Props {
   post: Post;
@@ -25,16 +25,18 @@ const href = postUrl(post.id);
 
   现在的做法是让**标题本身成为封面**：
   整张卡复用全站的 .glass 材质（与首屏数据条、方向卡同一套语言），
-  标题作为视觉主体直接排在玻璃里，编号角标压在角落。
+  标题作为视觉主体直接排在玻璃里。
   卡片的辨识度从"封面图配色"转移到"排版本身"——
   这也是极简风的常规做法：靠层级和留白区分，不靠图案。
+
+  右上角原本还有一个 `// 编号` 角标（postCode 生成的哈希短码）。
+  已按用户要求去掉：它既不参与点击、也不承载信息，
+  纯装饰元素在极简构图里只会分散注意力。
 -->
 <article
   class:list={['card', 'glass', 'glass--hover', feature && 'card--feature']}
   data-reveal
 >
-  <span class="card__id" aria-hidden="true">// {postCode(post.id)}</span>
-
   <div class="card__head">
     <h3 class="card__title">
       <a href={href}>{post.data.title}</a>

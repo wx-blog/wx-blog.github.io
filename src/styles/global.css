@@ -2174,11 +2174,9 @@ html.theme-switching *::after {
   }
 }
 
-/* 文章编号：跟封面角标同一套哈希，前缀 // 让它读起来像代码注释 */
-.post-hero__code {
-  color: var(--accent);
-  text-shadow: 0 0 12px var(--accent-glow);
-}
+/* 文章编号（.post-hero__code）已移除：
+   它与卡片角标同一套哈希、同样以 `//` 开头，
+   文章页的 eyebrow 行现在只保留日期与阅读时长。 */
 
 /* 标题做纵向微渐变：顶部受光、底部收住，比纯平色多一层体积感 */
 .hero__title {
@@ -2331,20 +2329,10 @@ html.theme-switching *::after {
   opacity: 1;
 }
 
-/* 封面左上角的技术编号 */
-.card__id {
-  position: absolute;
-  top: 0.7rem;
-  left: 0.8rem;
-  z-index: 2;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
-  color: var(--cv-id-color);
-  text-shadow: var(--cv-id-shadow);
-  font-variant-numeric: tabular-nums;
-  pointer-events: none;
-}
+/* .card__id（卡片角落的技术编号）已移除。
+   它原本压在封面左上角（`top` + `left`），改版后挪到右上角，
+   最后按用户要求整个去掉——这类"批号"式编号纯装饰、不承载信息，
+   在极简构图里只会分散注意力。 */
 
 /* 卡片标题里的链接默认跟随标题色（不是全局 a 的强调色），
    只在悬浮时点亮——否则列表页满屏青色标题，重点全丢了。 */
@@ -3462,19 +3450,6 @@ a.tag:hover {
   isolation: isolate;
 }
 
-/* 角标：压在右上角。用等宽字体 + 低对比度，像仪器上的批号 */
-.card__id {
-  position: absolute;
-  top: clamp(0.9rem, 0.8rem + 0.5vw, 1.2rem);
-  right: clamp(1rem, 0.9rem + 0.5vw, 1.45rem);
-  font-family: var(--font-mono);
-  font-size: var(--fs-micro);
-  color: var(--text-faint);
-  letter-spacing: 0.02em;
-  opacity: 0.75;
-  pointer-events: none;
-}
-
 /* 头部＝标题区。
    ⚠️ min-height 用 em 而不是 px：它要跟着字号缩放，
    而且给标题留出至少两行的高度，让同一行卡片的正文起点大致齐平。 */
@@ -3482,8 +3457,6 @@ a.tag:hover {
   display: flex;
   flex-direction: column;
   min-height: 3.2em;
-  /* 右侧留出角标的位置，避免长标题和 // 编号撞上 */
-  padding-right: 3.5rem;
 }
 
 .card__title {
@@ -3545,7 +3518,6 @@ a.tag:hover {
 
 .card--feature .card__head {
   min-height: 0;
-  padding-right: 4.5rem;
 }
 
 .card--feature .card__title {

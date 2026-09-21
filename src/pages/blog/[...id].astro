@@ -6,7 +6,6 @@ import {
   formatDate,
   getNeighbors,
   getPublishedPosts,
-  postCode,
   postUrl,
   readingTime,
   tagUrl,
@@ -36,8 +35,6 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
     <article>
       <header class="post-hero">
         <div class="post-hero__eyebrow">
-          <span class="post-hero__code">// {postCode(post.id)}</span>
-          <span class="post-hero__dot">·</span>
           <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
           <span class="post-hero__dot">·</span>
           <span>约 {minutes} 分钟</span>
