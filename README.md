@@ -148,55 +148,83 @@ URL 就是文件名去掉 `.md`，所以文件名一旦定下来**尽量别改**
 - 段内不要手动换行，写成一整行（折行交给渲染层）
 - 表格、代码块、引用都按标准 Markdown 写就行
 
-## 部署
+## 部署到 GitHub Pages
 
-默认走 GitHub Pages，`.github/workflows/deploy.yml` 已经写好。
+本地已经全部就绪：git 仓库已初始化、分支是 `main`、首次提交已完成
+（39 个文件），`.github/workflows/deploy.yml` 会在推送到 `main` 时自动构建并发布。
 
-### 1. 改站点地址（必做）
+**站点地址已设为 `https://weixuannote.github.io`**（用户主页仓库方案，
+`astro.config.mjs` 的 `site` 与 `src/consts.ts` 的 `SITE.url` 两处已同步）。
 
-两处必须一致：
+### 你还需要做的三步
 
-- `astro.config.mjs` 的 `site`
-- `src/consts.ts` 的 `SITE.url`
+**第 1 步：注册 GitHub，用户名必须是 `weixuannote`**
 
-| 仓库类型 | 地址格式 |
-| --- | --- |
-| 用户主页仓库 `<username>.github.io` | `https://<username>.github.io` |
-| 普通项目仓库 `<username>/<repo>` | `https://<username>.github.io/<repo>` |
+网址就是用户名，没有別的设置。所以注册时**用户名必须填 `weixuannote`**
+（已查过，未被占用）。用别的用户名，网址就会跟着变。
 
-如果是**项目仓库**，还要在 `astro.config.mjs` 里补一行 `base: '/<repo>'`。
+**第 2 步：建一个仓库，名字必须是 `weixuannote.github.io`**
 
-> 注意：`src/styles/fonts.css` 里的字体路径写的是绝对路径 `/fonts/...`。
-> 如果部署到子路径（项目仓库），需要把这两条 `url()` 也带上子路径。
+这是 GitHub 的特殊约定：仓库名和用户名同名 + 后缀 `.github.io`，才会生成用户主页站点，
+网址才是干净的 `https://weixuannote.github.io`（不带任何路径）。
 
-### 2. 推到 GitHub
+> 千万不要建一个叫 `blog` 的仓库——那样网址会变成
+> `weixuannote.github.io/blog`，站内所有绝对链接都会 404。
+
+仓库建好后先**不要**勾选 README / .gitignore 初始化，保持空仓库。
+
+**第 3 步：把这个仓库推上去**
+
+在 `output\blog` 目录下执行（把中文路径换成你的实际路径）：
 
 ```bash
-git init
-git add .
-git commit -m "chore: 初始化博客"
-git branch -M main
-git remote add origin git@github.com:<username>/<repo>.git
+git remote add origin https://github.com/weixuannote/weixuannote.github.io.git
 git push -u origin main
 ```
 
-### 3. 打开 Pages
+推的时候会让你登录 GitHub。**密码位置要填 Personal Access Token**，不是账号密码
+（GitHub 2021 年起就不支持密码推送了）。生成路径：
+头像 → Settings → Developer settings → Personal access tokens → Tokens (classic)
+→ Generate new token，勾选 `repo` 权限。
+
+**最后一步：打开 Pages**
 
 仓库 → **Settings** → **Pages** → **Build and deployment** → Source 选 **GitHub Actions**。
 
-### 4. 换成你自己的网址（自定义域名）
+设好之后每次 `git push` 都会自动重新构建发布，不用手动做任何事。
 
-先明确一件事：**WorkBuddy 托管分配的 `zhixing-notes.app.workbuddy.host` 改不成你自己的域名。**
-那个地址由平台生成，只有「应用名 + 平台域名」这一种形式。想用自己的网址，必须把站搬到
-你能控制域名的位置——最省事的是 GitHub Pages（免费、自带仓库备份、可直接绑域名）。
+### 常见问题
 
-按投入从少到多，三种「自己的网址」：
+**Q：以后改域名麻烦吗？**
+只改两行：`astro.config.mjs` 的 `site` + `src/consts.ts` 的 `SITE.url`。
+正文一行都不用动。
+
+**Q：仓库里的 `dist/` 要提交吗？**
+不要。`.gitignore` 已排除，GitHub Actions 会在云端自己构建。
+本地产物只供 `npm run preview` 预览。
+
+**Q：字体怎么办？`public/fonts/` 被 gitignore 了**
+这是有意的。字体子集是构建期生成的（`npm run build` 会先跑 `scripts/subset-fonts.mjs`），
+GitHub Actions 上每次构建都会现场生成，所以云端不需要仓库里有字体文件。
+代价是**构建时需要联网下载思源黑体源文件（17MB，只下第一次）**，
+GitHub Actions 的服务器在海外，下载没问题。
+
+### 换成完全自定义的域名
+
+`weixuannote.github.io` 已经是你自己的网址，但如果你想要 `weixuannote.com`
+这种完全自主的域名，见下面一节。
+
+## 换成自己的域名（可选）
+
+**先说清楚：WorkBuddy 托管分配的 `zhixing-notes.app.workbuddy.host` 是改不成自有域名的。**
+那个地址由平台生成，只有「应用名 + 平台域名」这一种形式。要自有域名必须换托管，
+GitHub Pages 就是那个能绑域名的地方。
 
 | 你想要的地址 | 需要做什么 | 花费 |
 | --- | --- | --- |
-| `<username>.github.io` | 注册 GitHub、建仓库、推上去 | 0 |
-| `blog.example.com` | 上面的 + 买域名 + 1 条 CNAME 记录 | 域名费 |
-| `example.com` | 上面的 + 4 条 A + 4 条 AAAA + www 的 CNAME | 域名费 |
+| `weixuannote.github.io` | 已完成 | 0 |
+| `blog.example.com` | 买域名 + 1 条 CNAME 记录 | 域名费 |
+| `example.com` | 买域名 + 4 条 A + 4 条 AAAA + www 的 CNAME | 域名费 |
 
 #### 要花多少钱
 
@@ -216,6 +244,9 @@ git push -u origin main
 > `.xyz` 首年 ¥15 → 续费 ¥106，`.cloud` 首年 ¥12 → 续费 ¥280。
 > `.com` / `.cn` 这种「首年不便宜、续费也不涨」的反而最省心。
 > 腾讯云新客能把 `.com` / `.cn` 做到 0 元首年，但**通常要求 2 年起购**，要比总价不能比首年。
+>
+> 另外 `.top` 因为便宜，历史上被大量垃圾站用过，**部分邮件服务商和单位网络会整段拦截**
+> 这个后缀，写进简历观感也一般。省这点钱不划算。
 
 所以真实成本是：**第一年 ¥83，之后每年 ¥90**。`.cn` 减半，但通用性不如 `.com`。
 
