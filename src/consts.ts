@@ -18,10 +18,10 @@ export const SITE = {
   /**
    * 站点根地址。必须与 astro.config.mjs 的 site 完全一致。
    *
-   * 当前 = GitHub Pages 用户主页仓库地址（用户名 weixuannote）。
+   * 当前 = GitHub Pages 用户主页仓库地址（用户名 wx-blog）。
    * 用户主页仓库的网址就是 https://<username>.github.io，结尾不带路径、不带斜杠。
    */
-  url: 'https://weixuannote.github.io',
+  url: 'https://wx-blog.github.io',
 
   /** 页头导航 */
   nav: [
@@ -32,7 +32,7 @@ export const SITE = {
 
   /** 页脚外链，直接把不需要的删掉 */
   social: [
-    { label: 'GitHub', href: 'https://github.com/weixuannote' },
+    { label: 'GitHub', href: 'https://github.com/wx-blog' },
     { label: 'RSS', href: '/rss.xml' },
   ],
 

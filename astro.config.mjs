@@ -7,13 +7,13 @@ import remarkCjkSpacing from './remark-cjk-spacing.mjs';
 /**
  * 站点根地址，canonical / RSS / sitemap 都依赖它。
  *
- * 当前值 = GitHub Pages 用户主页仓库地址（用户名 weixuannote）。
+ * 当前值 = GitHub Pages 用户主页仓库地址（用户名 wx-blog）。
  * 必须与 src/consts.ts 的 SITE.url 保持一致。
  *
  * 用户主页仓库（<username>.github.io）：https://<username>.github.io
  * 项目仓库（<username>/<repo>）：https://<username>.github.io/<repo> → 还要加 base: '/<repo>'
  */
-const SITE_URL = 'https://weixuannote.github.io';
+const SITE_URL = 'https://wx-blog.github.io';
 
 // https://astro.build/config
 export default defineConfig({
