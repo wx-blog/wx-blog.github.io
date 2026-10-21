@@ -63,26 +63,6 @@ const posts = await getPublishedPosts();
       </div>
     </section>
 
-    <section class="section">
-      <div class="doc-grid">
-        <p class="doc-grid__label" data-reveal>关于这个站</p>
-        <div class="doc-grid__body">
-          <h2 class="section__title" data-reveal style="--d:.05s">
-            静态站，样式手写。
-          </h2>
-          <div class="prose" data-reveal style="--d:.1s">
-            <p>用 <a href="https://astro.build" rel="noopener">Astro</a> 构建，纯静态输出。没有 UI 框架，CSS 全部手写；页面上的几段内联脚本只负责滚动入场、代码复制和站内搜索。</p>
-            <p>几处实现上的取舍：</p>
-            <ul>
-              <li><strong>字体</strong>：构建时扫描源码和文章里的实际用字，用 harfbuzz 裁出思源黑体子集。源文件 17MB，当前产物约 550KB，<code>font-display: swap</code>；文件放在 <code>/fonts/</code>，不请求第三方 CDN。代价是每次构建多一步扫描。</li>
-              <li><strong>分享图</strong>：<code>og.ts</code> 拼 SVG，构建时由 sharp 转成 1200×630 的 PNG，标题、日期、标签直接取 frontmatter。代价是构建多出 35 张图、约 2.3MB。</li>
-              <li><strong>搜索</strong>：构建期输出 <code>/search-index.json</code>（约 270KB），浏览器下载后在本地匹配和高亮，没有后端。代价是索引随文章数增长。</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="outro">
       <div class="outro__box" data-reveal>
         <h2 class="outro__title">有想聊的？</h2>
