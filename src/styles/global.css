@@ -6845,12 +6845,17 @@ html.is-intro .intro {
 /* 片头期间只把滚动条的滑块藏掉，不改 overflow：
    不消失就不会有 10px 的横向跳动，滚动条也不该在纯黑幕布边上
    露出一条灰白的"页面还有多长"的暗示。布局宽度保持原样。 */
+/* 开场期间把滚动条涂成与片头同一个底色。
+   不能只写 transparent：片头是 fixed inset:0，只盖住布局视口，
+   滚动条那 10px 仍在外面；transparent 会让底下的首屏光晕透上来，
+   右边挂一条紫边。改成不透明近黑，滚动条彻底消失。 */
 html.is-intro {
-  scrollbar-color: transparent transparent;
+  scrollbar-color: #050509 #050509;
 }
 
-html.is-intro::-webkit-scrollbar-thumb {
-  background: transparent;
+html.is-intro::-webkit-scrollbar-thumb,
+html.is-intro::-webkit-scrollbar-track {
+  background: #050509;
 }
 
 .intro.is-out {
