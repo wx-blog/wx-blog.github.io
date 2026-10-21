@@ -5658,7 +5658,9 @@ button:focus-visible {
 }
 
 .site-header.is-scrolled {
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  /* 72% 时，首屏大标题从页头底下透出来的亮度会和导航抢注意力；
+     82% 仍然能看见背后有内容在动，但文字已经退回背景。 */
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   -webkit-backdrop-filter: saturate(160%) blur(18px);
   backdrop-filter: saturate(160%) blur(18px);
   border-bottom-color: var(--border);
