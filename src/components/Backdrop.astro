@@ -15,6 +15,12 @@
  * 光斑的曲线和缓慢移动会与"水平/垂直"这套结构对冲，
  * 也省掉两个持续合成的图层。正文面板改为实色薄片后，
  * 也不需要再为 backdrop-filter 铺"可模糊的背景"。
+ *
+ * pointer-aura 是后加的一层：内页没有首屏那块跟着指针的光斑，
+ * 整页看久了会显得"死"。这里放一个极淡的全局光晕补上，
+ * 由 BaseLayout 的脚本按页判断（首页已有 hero spot，不重复）。
+ * 放在 backdrop 内部而不是 body 里，是为了让它始终留在内容后面，
+ * 不用再和 z-index 打交道。
  */
 ---
 
@@ -23,5 +29,6 @@
   <div class="backdrop__warm"></div>
   <div class="backdrop__ground"></div>
   <div class="backdrop__grid"></div>
+  <div class="pointer-aura" id="pointer-aura"></div>
 </div>
 <div class="grain" aria-hidden="true"></div>

@@ -4,6 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import Backdrop from '../components/Backdrop.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import Intro from '../components/Intro.astro';
 import { SITE } from '../consts';
 
 interface Props {
@@ -157,14 +158,86 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
 
            只有首页有 .hero，但这里不做判断：类挂在 <html> 上，
            没有 .hero 的页面自然匹配不到任何规则，零成本。 */
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          document.documentElement.classList.add('is-entering');
-          // 首帧之后再移除 —— 浏览器需要先认下初始态，过渡才会播
-          requestAnimationFrame(() => {
+        const root = document.documentElement;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        /* 开场层只在**首次进入首页**时出现。
+           ------------------------------------------------------------
+           判断放在 head 里，和 is-entering 一起、早于首帧，原因同上：
+           等 DOMContentLoaded 再决定，用户会先看见内容、再被盖住。
+
+           三个约束：
+             · 只认首页。从搜索结果直接落进某篇文章的人要的是内容，
+               不是先看两秒片头；
+             · 同一标签页只播一次（sessionStorage）。刷新不重播，
+               新开标签页仍会播——那才是"打开网站"的语义；
+             · ?intro=1 强制播放、?intro=0 强制跳过，方便预览和分享。
+           减少动态效果优先级最高：开着它时一律不播。 */
+        const query = new URLSearchParams(location.search);
+        const force = query.get('intro');
+        let seen = false;
+        try {
+          seen = sessionStorage.getItem('wx-intro') === '1';
+        } catch {
+          /* 隐私模式可能禁用 sessionStorage，按"没看过"处理 */
+        }
+        const showIntro =
+          !reduce &&
+          (force === '1' ||
+            (force !== '0' && location.pathname === '/' && !location.hash && !seen));
+
+        /* 开场期间拦一下滚轮 / 触摸滚动。
+           为什么不直接给 <html> 加 overflow:hidden：
+           那样滚动条会消失，布局横向跳 15px，片头结束时再跳回来。
+           这里只拦事件，不动布局。任何滚动尝试都顺手当作"跳过"，
+           因为能滚说明用户想往下看，不该继续等片头。 */
+        let releaseScroll = () => {};
+        if (showIntro) {
+          const block = (event) => {
+            if (event.cancelable) event.preventDefault();
+            window.__introSkip?.();
+          };
+          window.addEventListener('wheel', block, { passive: false });
+          window.addEventListener('touchmove', block, { passive: false });
+          releaseScroll = () => {
+            window.removeEventListener('wheel', block);
+            window.removeEventListener('touchmove', block);
+          };
+        }
+
+        /* 收尾的唯一出口：片头脚本、跳过、兜底超时都走这里。
+           必须先定义再挂超时，否则脚本抛错时页面永远停在片头上。 */
+        window.__introTeardown = () => {
+          root.classList.remove('is-intro', 'is-entering');
+          const el = document.getElementById('intro');
+          if (el) {
+            el.hidden = true;
+            el.classList.remove('is-out');
+          }
+          releaseScroll();
+        };
+
+        if (!reduce) {
+          if (showIntro) {
+            root.classList.add('is-intro', 'is-entering');
+            // 时间线从"片头开始可见"算起，而不是从底部脚本执行算起
+            window.__introAt = performance.now();
+            try {
+              sessionStorage.setItem('wx-intro', '1');
+            } catch {
+              /* 忽略：存不下就每次都播，功能不受影响 */
+            }
+            // 兜底：底部脚本被其他错误打断时，6 秒后强制揭幕
+            window.setTimeout(() => window.__introTeardown(), 6000);
+          } else {
+            root.classList.add('is-entering');
+            // 首帧之后再移除 —— 浏览器需要先认下初始态，过渡才会播
             requestAnimationFrame(() => {
-              document.documentElement.classList.remove('is-entering');
+              requestAnimationFrame(() => {
+                root.classList.remove('is-entering');
+              });
             });
-          });
+          }
         }
       })();
     </script>
@@ -173,6 +246,14 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
   <body>
     {/* 站内换页时的顶部进度条。纯装饰，不承担导航状态说明。 */}
     <div class="route-progress" id="route-progress" aria-hidden="true"></div>
+
+    {/* 站内换页时盖住旧页面的一层薄幕。
+        ClientRouter 是"先换 DOM、再画新页"，中间会有一帧半旧半新的
+        layout 跳动；这一层用极短的淡入把那一帧盖掉。
+        没有 SPA 导航时它始终 visibility:hidden，不占任何东西。 */}
+    <div class="page-veil" id="page-veil" aria-hidden="true"></div>
+
+    <Intro />
 
     <Backdrop />
 
@@ -185,6 +266,67 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
     </main>
 
     <Footer />
+
+    {/* 开场层退场。
+        ------------------------------------------------------------
+        这里只做三件事：算还要等多久、把 .is-out 挂上、在淡出结束后
+        调用 head 里定义好的 __introTeardown。
+        所有"状态收尾"都集中在 __introTeardown 一处，避免 head 的兜底
+        超时和这里的正常退出各收一半、留下半截类名。 */}
+    <script is:inline>
+      (() => {
+        if (!document.documentElement.classList.contains('is-intro')) return;
+
+        const intro = document.getElementById('intro');
+        if (!intro) {
+          window.__introTeardown?.();
+          return;
+        }
+
+        const started = window.__introAt || performance.now();
+        let finished = false;
+        let timer = 0;
+
+        const unbind = () => {
+          window.removeEventListener('pointerdown', skip, true);
+          window.removeEventListener('keydown', skip, true);
+          window.removeEventListener('touchstart', skip, true);
+        };
+
+        const finish = (skipped) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+          unbind();
+          intro.classList.add('is-out');
+          // 幕布开始淡出的同时放首屏进来，两层交叉，中间不会露出一块空黑
+          document.documentElement.classList.remove('is-entering');
+          // 数字滚动等页内动效挂在这条事件上：幕布还盖着的时候先别跑，
+          // 否则揭开时数字早就停住了，白做一次动画。
+          // __introDone 必须早于事件设置：事件是同步派发的，
+          // 监听器里会立刻检查这个标记。
+          window.__introDone = true;
+          window.dispatchEvent(new Event('site:intro-done'));
+          // 正常退场要等 80ms 延迟 + 700ms 淡出全部走完；跳过则缩短到 380ms
+          window.setTimeout(() => window.__introTeardown?.(), skipped ? 380 : 800);
+        };
+
+        // 键鼠 / 触摸任意一处都算跳过；prompt 里不写"点击跳过"，
+        // 只在右下角放一个很淡的提示，不打断中间那组字。
+        const skip = () => finish(true);
+        window.__introSkip = skip;
+
+        window.addEventListener('pointerdown', skip, true);
+        window.addEventListener('keydown', skip, true);
+        window.addEventListener('touchstart', skip, true);
+
+        /* 1200ms 是内容入场 + 进度线走完的时间；再留 250ms 让人看清
+           最后一眼，然后开始退场。计时锚点是 head 里的 __introAt，
+           所以即使底部脚本因为解析慢晚执行，总时长也不会被拉长。 */
+        const wait = Math.max(0, 1450 - (performance.now() - started));
+        timer = window.setTimeout(() => finish(false), wait);
+      })();
+    </script>
 
     {/* 订阅页的复制按钮 + 站内搜索。
         放在 BaseLayout 里而不是各自页面内：站点用了 ClientRouter，
@@ -573,6 +715,27 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
         const resetBar = () => {
           const el = barEl();
           if (el) el.className = 'route-progress';
+          veilEl()?.classList.remove('is-on');
+        };
+
+        /* ---------- 换页薄幕 ----------
+           和进度条同一条生命周期：开始加载时拉起，after-swap 时
+           给新 DOM 里的那张幕补上（旧节点已经被换掉），page-load 后淡出。
+
+           after-swap 里必须**同步**补类，不能等下一帧：浏览器可能
+           在新幕还是透明的时候就画了第一帧，那一帧正是新旧版式
+           叠在一起的时刻。 */
+        const veilEl = () => document.getElementById('page-veil');
+        let veilTimer = 0;
+        const raiseVeil = () => {
+          const el = veilEl();
+          if (!el || reduce) return;
+          clearTimeout(veilTimer);
+          el.classList.add('is-on');
+        };
+        const dropVeil = (delay = 0) => {
+          clearTimeout(veilTimer);
+          veilTimer = window.setTimeout(() => veilEl()?.classList.remove('is-on'), delay);
         };
 
         if (!window.__routeBar) {
@@ -583,6 +746,7 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
             if (!el) return;
             clearTimeout(failsafe);
             el.className = 'route-progress is-loading';
+            raiseVeil();
             failsafe = window.setTimeout(resetBar, 8000);
           });
           document.addEventListener('astro:after-preparation', () => {
@@ -591,11 +755,14 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           document.addEventListener('astro:after-swap', () => {
             const el = barEl();
             if (el) el.className = 'route-progress is-loading is-ready';
+            raiseVeil();
           });
           document.addEventListener('astro:page-load', () => {
             const el = barEl();
             if (!el) return;
             clearTimeout(failsafe);
+            // 留一帧让新幕真正上屏，再开始淡出；否则快速导航时可能完全看不见
+            dropVeil(80);
             if (!el.classList.contains('is-loading')) {
               resetBar();
               return;
@@ -631,6 +798,18 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           if (counterIO) counterIO.disconnect();
           const els = document.querySelectorAll('[data-count]');
           if (!els.length) return;
+          /* 开场层还盖着时只把数字归零，不启动滚动。
+             它们挂在 site:intro-done 上重跑一次，和首屏入场同时开始。
+             不能只看 is-intro：退场动画期间这个类还在，数字还是起不来。 */
+          if (
+            document.documentElement.classList.contains('is-intro') &&
+            !window.__introDone
+          ) {
+            els.forEach((el) => {
+              el.textContent = '0';
+            });
+            return;
+          }
           if (reduce) {
             els.forEach((el) => {
               el.textContent = el.dataset.count || '0';
@@ -716,13 +895,65 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           }
         };
 
+        /* ---------- 内页指针光晕 ----------
+           首页已经有 .hero__spot，再叠一层只会把标题背后的光搅浑，
+           所以只在没有 .hero 的页面上开。
+
+           和 hero spot 的区别：这个是**整页**跟着指针走，位于 backdrop
+           内部（z-index:-1），不会盖住正文，也不吃 pointer 事件。
+           监听只绑一次，页面换掉后由 #pointer-aura 的现查拿到新节点。 */
+        const setupAura = () => {
+          const aura = document.getElementById('pointer-aura');
+          if (!aura || reduce) return;
+          if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+          window.__auraOn = !document.querySelector('.hero');
+          if (!window.__auraOn) {
+            aura.classList.remove('is-on');
+            return;
+          }
+
+          if (window.__auraBound) return;
+          window.__auraBound = true;
+
+          let raf = 0;
+          let x = window.innerWidth / 2;
+          let y = window.innerHeight * 0.42;
+
+          const paint = () => {
+            raf = 0;
+            const el = document.getElementById('pointer-aura');
+            if (!el || !window.__auraOn) return;
+            el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+            el.classList.add('is-on');
+          };
+
+          window.addEventListener(
+            'pointermove',
+            (event) => {
+              if (!window.__auraOn) return;
+              x = event.clientX;
+              y = event.clientY;
+              if (!raf) raf = requestAnimationFrame(paint);
+            },
+            { passive: true },
+          );
+
+          document.addEventListener('pointerleave', () => {
+            document.getElementById('pointer-aura')?.classList.remove('is-on');
+          });
+        };
+
         const init = () => {
           setupCounters();
           setupSpot();
           setupCards();
+          setupAura();
         };
 
         document.addEventListener('astro:page-load', init);
+        // 开场层开始退场后再启动计数（没有开场层时这条事件不会发生）
+        window.addEventListener('site:intro-done', init);
         if (document.readyState !== 'loading') init();
       })();
     </script>

@@ -1,0 +1,40 @@
+---
+/**
+ * 首次打开首页时的开场层。
+ *
+ * 只负责"长什么样"。"什么时候出现、什么时候退场"由 BaseLayout 的
+ * 内联脚本决定：head 里先挂 `is-intro`（必须早于首帧，否则会闪一下），
+ * 底部脚本按时间线移除。
+ *
+ * 没有 JS 时 `is-intro` 不会存在，`.intro` 保持 display:none，
+ * 页面直接从内容开始——开场层不能成为可见内容的前置依赖。
+ *
+ * 视觉上只有三层：一层极光、一层细网格、一层颗粒。中间是
+ * 星标 → 渐变字标 → 细进度线。没有百分比、没有"加载中"文案：
+ * 这里没有真实的加载进度，写一个数字就是在编。
+ */
+import Spark from './Spark.astro';
+import { SITE } from '../consts';
+---
+
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro__glow"></div>
+  <div class="intro__grid"></div>
+  <div class="intro__beam"></div>
+  <div class="intro__grain"></div>
+
+  <div class="intro__stage">
+    <div class="intro__mark">
+      <span class="intro__ring"></span>
+      <Spark size={42} id="spark-intro" sparkle={false} />
+    </div>
+
+    <p class="intro__wordmark">{SITE.title}</p>
+    <p class="intro__tagline">{SITE.tagline}</p>
+
+    <div class="intro__progress"><span></span></div>
+    <p class="intro__meta">LINUX / CLOUD / INFRA</p>
+  </div>
+
+  <span class="intro__skip mono-label">跳过</span>
+</div>

@@ -6796,3 +6796,547 @@ a.tag:hover {
   }
 }
 
+
+/* ==========================================================================
+   32. 开场、换页与内页纵深
+   ==========================================================================
+
+   这一层解决的是「打开」和「翻页」两个瞬间，外加内页的空白。
+
+   原则和 31 一样：只动 transform / opacity / clip-path，
+   不碰 width、top、margin，不在滚动或换页时触发布局。
+   唯一的例外是开场进度条用 scaleX —— 它本身就是 transform。
+
+   z 轴分工（这一节新增两层）：
+     -1  backdrop（含 pointer-aura）
+     30  页头
+     60  胶片颗粒
+     80  换页薄幕（page-veil）
+     90  开场层（intro）
+    100  顶部进度条
+   ========================================================================== */
+
+/* ---------- 32.1 开场层 ---------- */
+
+/* 默认不存在。只有 head 脚本确认「要播」时才挂上 is-intro。
+   这样无 JS、减少动态效果、非首次访问三种情况都不需要额外分支。 */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: none;
+  place-items: center;
+  overflow: hidden;
+  background: #050509;
+  opacity: 1;
+  transition: opacity 0.7s var(--ease) 0.08s;
+}
+
+html.is-intro .intro {
+  display: grid;
+}
+
+/* 兜底：只要已经收尾，就绝不能再占着屏幕接点击。
+   否则一个状态没对上，整站会像卡死一样点不动。 */
+.intro[hidden] {
+  display: none !important;
+}
+
+/* 片头期间只把滚动条的滑块藏掉，不改 overflow：
+   不消失就不会有 10px 的横向跳动，滚动条也不该在纯黑幕布边上
+   露出一条灰白的"页面还有多长"的暗示。布局宽度保持原样。 */
+html.is-intro {
+  scrollbar-color: transparent transparent;
+}
+
+html.is-intro::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.intro.is-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 极光：中心偏紫、底边偏蓝，让黑底不是一块平色。
+   两层径向渐变叠在近黑线性渐变上，和站内背景同一个色域。 */
+.intro__glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(48% 40% at 50% 42%, rgba(124, 92, 246, 0.24), transparent 70%),
+    radial-gradient(76% 52% at 50% 104%, rgba(64, 96, 255, 0.18), transparent 72%),
+    radial-gradient(120% 80% at 50% 8%, rgba(48, 72, 190, 0.12), transparent 66%),
+    linear-gradient(180deg, #07060e 0%, #050509 58%, #060511 100%);
+}
+
+/* 细网格：只在画面中部能被看见，边缘交给 mask 淡出。
+   5rem 的格子和背景那层 56px 的网格不同步，近看会有一点点"视差"，
+   但两者都极淡，不会变成两张网叠在一起。 */
+.intro__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 5rem 5rem;
+  -webkit-mask-image: radial-gradient(62% 52% at 50% 46%, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 82%);
+  mask-image: radial-gradient(62% 52% at 50% 46%, #000 0%, rgba(0, 0, 0, 0.55) 55%, transparent 82%);
+  opacity: 0.55;
+}
+
+/* 颗粒：开场层盖在 z60 的颗粒之上，不补这一层的话
+   片头会比站内任何一页都干净，反而不像同一个站点。 */
+.intro__grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  opacity: 0.055;
+  pointer-events: none;
+}
+
+/* 退场时扫过的一道极淡光带。只在 is-out 时播一次，
+   不常驻、不循环——它负责把"揭幕"这个动作讲清楚。 */
+.intro__beam {
+  position: absolute;
+  inset: -30%;
+  z-index: 1;
+  background: linear-gradient(
+    104deg,
+    transparent 46%,
+    rgba(180, 160, 255, 0.06) 49%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(180, 160, 255, 0.06) 51%,
+    transparent 54%
+  );
+  opacity: 0;
+  transform: translateX(-55%) rotate(8deg);
+  pointer-events: none;
+}
+
+.intro.is-out .intro__beam {
+  animation: intro-beam 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes intro-beam {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%) rotate(8deg);
+  }
+  35% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(55%) rotate(8deg);
+  }
+}
+
+/* 舞台本身不做动画：入场动画都在子元素上，退场由这里统一接管。
+   如果舞台也挂了 animation，它的 transform 会被动画的 fill 锁住，
+   .is-out 里的位移就失效了。 */
+.intro__stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(88vw, 30rem);
+  text-align: center;
+  transition:
+    opacity 0.5s var(--ease),
+    transform 0.7s var(--ease),
+    filter 0.5s var(--ease);
+}
+
+.intro.is-out .intro__stage {
+  opacity: 0;
+  filter: blur(7px);
+  transform: translateY(-16px) scale(1.04);
+}
+
+.intro__mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1.4rem;
+}
+
+.intro__mark .spark {
+  filter: drop-shadow(0 0 26px rgba(140, 110, 255, 0.7));
+  animation: intro-spark 0.9s var(--ease-out) 0.02s backwards;
+}
+
+/* 星标亮起时向外推一圈细环：像一次对焦，不是烟花。
+   动画结束后回到默认 opacity:0，所以不会留下一个常驻圆圈。 */
+.intro__ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(168, 146, 255, 0.34);
+  border-radius: 50%;
+  opacity: 0;
+  animation: intro-ring 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.12s backwards;
+}
+
+@keyframes intro-spark {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-12deg);
+  }
+}
+
+@keyframes intro-ring {
+  0% {
+    opacity: 0;
+    transform: scale(0.45);
+  }
+  25% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.85);
+  }
+}
+
+/* 字标用整段渐变。和首页标题里只染一个动词不同：
+   这里整块字都是"标识"，不需要再分主次。 */
+.intro__wordmark {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(2rem, 1.35rem + 2.6vw, 3rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 10px 34px rgba(120, 100, 255, 0.28));
+  animation: intro-word 1s cubic-bezier(0.16, 1, 0.3, 1) 0.12s backwards;
+}
+
+/* 由下往上"擦"出字标，不是淡入。clip-path 和背景裁切可以共存，
+   这两个属性不在同一层：一个裁元素，一个裁背景。 */
+@keyframes intro-word {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+    transform: none;
+  }
+}
+
+.intro__tagline {
+  margin: 0.85rem 0 0;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  animation: intro-fade 0.7s var(--ease-out) 0.32s backwards;
+}
+
+.intro__progress {
+  position: relative;
+  width: 8.5rem;
+  height: 1px;
+  margin-top: 2.1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  animation: intro-fade 0.5s var(--ease-out) 0.3s backwards;
+}
+
+.intro__progress span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  background: var(--grad);
+  box-shadow: 0 0 10px rgba(160, 130, 255, 0.65);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  animation: intro-fill 1s cubic-bezier(0.24, 0.74, 0.25, 1) 0.35s forwards;
+}
+
+@keyframes intro-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.intro__meta {
+  margin: 0.9rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.24em;
+  color: var(--text-faint);
+  animation: intro-fade 0.6s var(--ease-out) 0.48s backwards;
+}
+
+/* 跳过提示：不抢中心那组字，只在右下角留一个很淡的标签。
+   点击任意处也会跳过，这个标签只是"告诉你有这回事"。 */
+.intro__skip {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1.2rem, 3vw, 2.4rem);
+  bottom: clamp(1.2rem, 3vw, 2.2rem);
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+  opacity: 0.5;
+  animation: intro-fade 0.8s var(--ease-out) 0.9s backwards;
+}
+
+@keyframes intro-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---------- 32.2 换页薄幕 ---------- */
+
+/* 换页时盖住旧页面。不是"加载动画"：它没有转圈、没有文字，
+   只是把新旧两帧之间那一瞬的版式错位藏起来。
+   pointer-events 始终为 none，不拦截任何点击。 */
+.page-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background:
+    radial-gradient(58% 52% at 50% 42%, rgba(90, 70, 180, 0.16), transparent 70%),
+    rgba(5, 5, 9, 0.62);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.32s var(--ease),
+    visibility 0s linear 0.32s;
+}
+
+.page-veil.is-on {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.18s var(--ease),
+    visibility 0s;
+}
+
+/* ---------- 32.3 内页纵深 ---------- */
+
+/* 指针光晕：首页有 .hero__spot，这一层只服务没有首屏的页面。
+   半径 46rem、透明度 0.11——它应该像环境光，不该像手电筒。 */
+.pointer-aura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 46rem;
+  height: 46rem;
+  margin: -23rem 0 0 -23rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(126, 104, 255, 0.11),
+    rgba(72, 112, 255, 0.05) 42%,
+    transparent 68%
+  );
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  transition: opacity 0.7s var(--ease);
+}
+
+.pointer-aura.is-on {
+  opacity: 1;
+}
+
+/* 内页页头右侧的"轨道"：同心细环 + 一段缓慢转动的弧。
+   位置压在页头右侧的空白里，宽度受限、边缘用 mask 淡出，
+   在小屏上直接隐藏——那里没有空白可以放它。 */
+.page-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  --orbit: clamp(15rem, 19vw, 20rem);
+}
+
+.page-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: clamp(-5rem, -2vw, -1rem);
+  width: var(--orbit);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(112, 86, 255, 0.16), transparent 64%),
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.06) 0 1px,
+      transparent 1px 2.8rem
+    );
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 6%, rgba(0, 0, 0, 0.65) 48%, transparent 82%);
+  mask-image: radial-gradient(circle closest-side, #000 6%, rgba(0, 0, 0, 0.65) 48%, transparent 82%);
+  pointer-events: none;
+}
+
+.page-hero::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: clamp(-5rem, -2vw, -1rem);
+  width: var(--orbit);
+  aspect-ratio: 1;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 200deg,
+    transparent 0 56%,
+    rgba(168, 146, 255, 0.3) 64%,
+    rgba(255, 255, 255, 0.16) 69%,
+    transparent 75%
+  );
+  /* 只留下 69% 那一圈：把中间和外侧都裁掉 */
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 0 68.4%, #000 68.8%, #000 69.2%, transparent 69.6%);
+  mask-image: radial-gradient(circle closest-side, transparent 0 68.4%, #000 68.8%, #000 69.2%, transparent 69.6%);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: orbit-turn 52s linear infinite;
+}
+
+@keyframes orbit-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* ---------- 32.4 文章页头入场 ---------- */
+
+/* 从列表点进文章时，正文之前先有一下"落位"。
+   只播一次，不绑滚动：页头本来就在首屏，滚动触发等于开局就播完。
+   用 backwards 而不是 both，动画结束后回到默认样式，
+   以后要加 hover / 状态类不会被 fill 锁住。 */
+@media (prefers-reduced-motion: no-preference) {
+  .post-hero__eyebrow {
+    animation: post-rise 0.6s var(--ease-out) backwards;
+  }
+
+  .post-hero__title {
+    animation: post-rise 0.9s var(--ease-out) 0.06s backwards;
+  }
+
+  .post-hero__desc {
+    animation: post-rise 0.85s var(--ease-out) 0.14s backwards;
+  }
+
+  .post-hero__tags {
+    animation: post-rise 0.8s var(--ease-out) 0.22s backwards;
+  }
+}
+
+@keyframes post-rise {
+  from {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(16px);
+  }
+}
+
+/* 内页大标题的遮罩揭示：文字从下往上露出来，再落到位。
+   [data-reveal] 原本的位移/淡入保留，这里只接管 clip-path。
+   只在 .js 下启用初始裁切，否则禁用脚本时标题会永远缺一半。 */
+:root.js .page-hero__title[data-reveal] {
+  clip-path: inset(0 0 92% 0);
+}
+
+:root.js .page-hero__title[data-reveal].is-in {
+  clip-path: inset(0);
+  transition:
+    opacity 0.9s var(--ease-out) var(--d, 0s),
+    transform 0.9s var(--ease-out) var(--d, 0s),
+    clip-path 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s);
+}
+
+/* ---------- 32.5 窄屏与减少动态效果 ---------- */
+
+@media (max-width: 64rem) {
+  .page-hero::before,
+  .page-hero::after {
+    display: none;
+  }
+}
+
+@media (max-width: 46rem) {
+  .pointer-aura {
+    display: none;
+  }
+
+  /* 移动端 blur 的合成成本明显更高，换幕退化成纯色遮罩，
+     反而更快、也没有"画面被抹开"的廉价感。 */
+  .page-veil {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(5, 5, 9, 0.8);
+  }
+
+  .intro__grid {
+    background-size: 4rem 4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* JS 已经不会挂 is-intro，这里再兜一层：即便类被误挂，也不挡内容 */
+  .intro {
+    display: none !important;
+  }
+
+  .page-veil,
+  .pointer-aura {
+    display: none;
+  }
+
+  .intro__mark .spark,
+  .intro__ring,
+  .intro__wordmark,
+  .intro__tagline,
+  .intro__progress,
+  .intro__meta,
+  .intro__skip,
+  .page-hero::before {
+    animation: none;
+  }
+
+  .page-hero::before {
+    opacity: 0;
+  }
+
+  .post-hero__eyebrow,
+  .post-hero__title,
+  .post-hero__desc,
+  .post-hero__tags {
+    animation: none;
+  }
+
+  :root.js .page-hero__title[data-reveal] {
+    clip-path: none;
+  }
+
+  .intro__stage {
+    transition: none;
+  }
+}
