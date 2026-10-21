@@ -4224,3 +4224,1295 @@ a.tag:hover {
     transition: none;
   }
 }
+
+/* ==========================================================================
+   30. 视觉改版：近黑紫底 / 细竖线 / 左对齐大标题 / 地平线弧光
+
+   参考的是一张 fintech 落地页，取的是它的结构而不是皮肤：
+     · 近黑底上只留白、灰、紫三种色相；
+     · 竖线网格给画面一个可度量的背景；
+     · 左栏超大标题、右栏一段说明 + 一组数字；
+     · 底部一条细分割线，放索引和滚动提示；
+     · 视口底部一道紫色地平线，两条大弧线从它升起。
+
+   ★ 为什么整段追加在文件最后：
+   前面的规则按时间顺序记录了每一轮改版，直接改会让"改了什么"消失。
+   这里的同特异性规则靠"后定义者胜出"覆盖旧值，改哪条、为什么，
+   都集中在这一节里，回滚时只需删掉这一段。
+
+   ★ 材质从"毛玻璃"退回"薄面板"：
+   上一轮的玻璃需要背景持续有可模糊的内容，而新构图是平直的网格，
+   没有漂移光斑可供折射；继续保留 backdrop-filter 只会得到一层灰膜，
+   还让列表页每张卡都实时采样背景。现在卡片是 1px 边框 + 2% 白底，
+   几乎零渲染成本，层级由排版承担。
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* 近黑偏紫，比纯黑多一点点色相，避免大屏上看起来像关掉的显示器 */
+  --bg: #07050c;
+  --bg-subtle: #0b0813;
+  --bg-inset: #141020;
+
+  --surface: rgba(255, 255, 255, 0.028);
+  --surface-strong: rgba(255, 255, 255, 0.05);
+
+  --text: #f7f4fd;
+  --text-muted: #a79cb8;
+  --text-faint: #756b86;
+
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* 正文链接用浅紫（暗底上对比度够），实心按钮用深紫（衬白字）。
+     两者分开是因为"可读的紫"和"能当底的紫"不是同一个明度。 */
+  --accent: #b9a7ff;
+  --accent-hover: #d8ccff;
+  --accent-solid: #7c5cff;
+  --accent-soft: rgba(167, 139, 250, 0.13);
+  --accent-glow: rgba(139, 92, 246, 0.4);
+  --on-accent: #ffffff;
+
+  --warm: #9f7cff;
+  --warm-soft: rgba(159, 124, 255, 0.13);
+  --warm-glow: rgba(124, 58, 237, 0.42);
+
+  --grid-line: rgba(255, 255, 255, 0.045);
+  --grid-size: 120px;
+  --noise-opacity: 0.028;
+  --halo: rgba(139, 92, 246, 0.25);
+
+  --grad-1: #f7f3ff;
+  --grad-2: #ded2ff;
+  --grad-3: #c4b5fd;
+  --grad-4: #a78bfa;
+  --title-sheen: linear-gradient(180deg, #ffffff 0%, #ded5f2 100%);
+
+  /* 面板：小圆角、几乎不可见的白底、细边 */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+
+  --glass-bg: rgba(255, 255, 255, 0.025);
+  --glass-bg-hover: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-border-hover: rgba(185, 167, 255, 0.32);
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+  --glass-sheen: rgba(255, 255, 255, 0.06);
+  --glass-shadow: none;
+  --glass-shadow-hover: none;
+
+  --header-h: 4.25rem;
+}
+
+.skip-link {
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+/* ---------- 30.1 背景：竖线 + 底部紫色地平线 ---------- */
+
+.backdrop__plain {
+  background-image:
+    radial-gradient(120% 64% at 50% 104%, rgba(109, 60, 220, 0.2), transparent 66%),
+    radial-gradient(90% 52% at 50% -12%, rgba(91, 58, 160, 0.13), transparent 70%);
+}
+
+/* 全站唯一的暖色被紫色替代：它只负责"远处有光"，不负责照亮正文 */
+.backdrop__warm {
+  bottom: -20rem;
+  width: min(120rem, 190%);
+  height: 36rem;
+  background: radial-gradient(
+    closest-side,
+    rgba(124, 58, 237, 0.5),
+    rgba(124, 58, 237, 0.16) 48%,
+    rgba(124, 58, 237, 0) 74%
+  );
+  opacity: 0.55;
+  filter: none;
+}
+
+.backdrop__ground {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 56%,
+    color-mix(in srgb, var(--bg) 72%, transparent) 82%,
+    var(--bg) 100%
+  );
+  opacity: 0.88;
+}
+
+/* 只保留竖线。横线会让本来就很平的长页面多出一层"表格感"，
+   而参考图里的网格也主要是用来暗示纵向节奏的。 */
+.backdrop__grid {
+  background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) 100%;
+  mask-image: radial-gradient(130% 78% at 50% 0%, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(130% 78% at 50% 0%, #000 0%, transparent 78%);
+}
+
+/* ---------- 30.2 页头：工具条而不是导航胶囊 ---------- */
+
+.site-header {
+  background: color-mix(in srgb, var(--bg) 74%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom-color: var(--border);
+}
+
+.site-header.is-scrolled {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  border-bottom-color: var(--border);
+}
+
+/* 旧版滚动时浮出的渐变光缝，与新页头的 1px 分割线重复 */
+.site-header::after {
+  display: none;
+}
+
+.site-header__inner {
+  gap: 2rem;
+  min-height: var(--header-h);
+}
+
+.brand {
+  gap: 0.65rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.brand__glyph {
+  color: var(--accent);
+  filter: none;
+}
+
+.brand:hover .brand__glyph {
+  color: var(--accent-hover);
+  filter: none;
+}
+
+.site-nav {
+  gap: clamp(1rem, 2.2vw, 1.9rem);
+}
+
+.site-nav a {
+  position: relative;
+  padding: 0.35rem 0;
+  border-radius: 0;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  background: none;
+}
+
+.site-nav a[aria-current='page'] {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.site-nav a[aria-current='page']::after {
+  left: 0;
+  right: 0;
+  bottom: -0.2rem;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* 页头右侧的紫色胶囊，对应参考图里的 Sign Up */
+.site-nav .nav-search {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-left: 0.2rem;
+  padding: 0.48rem 0.85rem;
+  border: 1px solid rgba(185, 167, 255, 0.32);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1;
+  transition:
+    background-color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.site-nav .nav-search:hover {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+.site-nav .nav-search svg {
+  flex: none;
+  opacity: 0.9;
+}
+
+/* ---------- 30.3 页脚：细线 + 等宽小字 ---------- */
+
+.site-footer {
+  margin-top: clamp(4rem, 7vw, 7rem);
+  padding: clamp(2rem, 3vw, 2.75rem) 0 clamp(2.5rem, 4vw, 3.5rem);
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.site-footer__inner {
+  gap: 1rem 2rem;
+  align-items: center;
+}
+
+.site-footer__note {
+  max-width: 44rem;
+  line-height: 1.8;
+}
+
+.site-footer__links {
+  gap: 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+}
+
+.site-footer a {
+  color: var(--text-muted);
+}
+
+.site-footer a:hover {
+  color: var(--accent);
+}
+
+/* ---------- 30.4 首屏：左标题 / 右说明与数字 / 底部索引 ---------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  min-height: calc(100svh - var(--header-h));
+  overflow: hidden;
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 2;
+  flex: 1 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 0.72fr);
+  gap: clamp(2rem, 6vw, 6.5rem);
+  align-content: center;
+  align-items: stretch;
+  width: 100%;
+  max-width: var(--wide);
+  margin-inline: auto;
+  padding: clamp(3.5rem, 9vh, 6.5rem) var(--gutter);
+  text-align: left;
+}
+
+.hero__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 clamp(1.4rem, 3vh, 2.4rem);
+  color: var(--text-faint);
+}
+
+.hero__eyebrow .mono-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+
+.hero__eyebrow .pulse-dot {
+  width: 0.35rem;
+  height: 0.35rem;
+}
+
+/* 字号上限卡在 5.4rem：再大，第二行 8 个汉字就会在 1440 宽下
+   超出左栏、折成三行。这里的数值是按"左栏 688px、8 字一行"反推的。
+   下限 2.05rem 同理：320px 的窄屏上，2.35rem 会让最后一个「记」字掉到第三行。 */
+.hero__title {
+  margin: 0;
+  font-size: clamp(2.05rem, 0.95rem + 5.8vw, 5.4rem);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  max-width: none;
+  text-wrap: initial;
+}
+
+.hero__lede {
+  margin: clamp(1.4rem, 2.8vh, 2rem) 0 0;
+  max-width: 40ch;
+  font-size: clamp(0.9875rem, 0.95rem + 0.25vw, 1.0625rem);
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+/* 首篇推荐：一条带起始标签的索引行，而不是又一张卡片。
+   它承担的是"从哪开始"，不应该和下面的文章列表抢体积。 */
+.hero__start {
+  display: grid;
+  grid-template-columns: 6.25rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem 1.4rem;
+  width: min(100%, 37rem);
+  margin-top: clamp(2rem, 4.5vh, 3.2rem);
+  padding-top: clamp(1rem, 2vh, 1.3rem);
+  border-top: 1px solid var(--border);
+}
+
+.hero__start-meta {
+  display: grid;
+  gap: 0.55rem;
+  align-content: center;
+}
+
+.hero__start-meta .mono-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+.hero__start-rule {
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.hero__start-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--text);
+  transition: color 0.2s var(--ease);
+}
+
+.hero__start-arrow {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 1rem;
+  transition:
+    background-color 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    color 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+
+.hero__start:hover .hero__start-title {
+  color: var(--accent-hover);
+}
+
+.hero__start:hover .hero__start-arrow {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: #fff;
+  transform: translate(2px, -2px);
+}
+
+/* 右栏：说明贴顶、数字贴底。align-self: stretch 让右栏拿到与左栏
+   相同的高度，margin-top: auto 才能把数字真正压到底线。 */
+.hero__aside {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-self: end;
+  width: 100%;
+  max-width: 23rem;
+  min-width: 0;
+  padding-left: clamp(1.5rem, 3vw, 2.25rem);
+  border-left: 1px solid var(--border);
+}
+
+.hero__aside-label {
+  margin: 0 0 1.25rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+.hero__aside-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: var(--text-muted);
+}
+
+.hero__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: clamp(2rem, 6vh, 3.75rem);
+}
+
+.hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+}
+
+.hero__stat-value {
+  font-size: clamp(1.8rem, 1.2rem + 1.4vw, 2.5rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.hero__stat-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+/* 底部索引：一条横线、四列方向、一个滚动提示 */
+.hero__foot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  width: 100%;
+  max-width: var(--wide);
+  margin-inline: auto;
+  padding: 1.15rem var(--gutter) 1.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.hero__topic-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1;
+  max-width: 46rem;
+}
+
+.hero__topic {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.3rem clamp(0.75rem, 2vw, 1.5rem);
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: color 0.2s var(--ease);
+}
+
+.hero__topic:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.hero__topic-name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hero__topic-count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  transition: color 0.2s var(--ease);
+}
+
+.hero__topic:hover {
+  color: var(--accent);
+}
+
+.hero__topic:hover .hero__topic-count {
+  color: var(--accent);
+}
+
+/* 旧版是固定在底部的圆形呼吸箭头。这里改成一行等宽字 + 轻微位移，
+   位置放回文档流，由底部索引条承担，不再 absolute 到首屏中央。 */
+.hero__scroll {
+  position: static;
+  left: auto;
+  bottom: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: auto;
+  height: auto;
+  translate: none;
+  white-space: nowrap;
+  animation: none;
+  color: var(--text-faint);
+  transition: color 0.2s var(--ease);
+}
+
+.hero__scroll .mono-label {
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+}
+
+.hero__scroll-arrow {
+  display: inline-block;
+  font-size: 0.85rem;
+  animation: hero-nudge 2.6s var(--ease) infinite;
+}
+
+.hero__scroll:hover {
+  color: var(--text);
+}
+
+@keyframes hero-nudge {
+  0%,
+  100% {
+    transform: translateY(-2px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+}
+
+/* 地平线：一团贴底的紫光 + 两条大弧。
+   弧线用超宽椭圆的 border-top 实现，只有顶部一段落在画面里，
+   所以读起来像"地平线"而不是两个圆圈。 */
+.hero__horizon {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 0;
+  height: min(44rem, 78vh);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.hero__horizon::before {
+  content: '';
+  position: absolute;
+  bottom: -18rem;
+  left: 50%;
+  width: min(90rem, 140vw);
+  height: 32rem;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    closest-side,
+    rgba(124, 58, 237, 0.42),
+    rgba(124, 58, 237, 0.15) 48%,
+    rgba(124, 58, 237, 0) 72%
+  );
+  opacity: 0.75;
+}
+
+.hero__arc {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  aspect-ratio: 2 / 1;
+  border: 1px solid rgba(185, 167, 255, 0.13);
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+}
+
+.hero__arc--1 {
+  width: min(118rem, 150vw);
+  transform: translate(-50%, 46%);
+}
+
+.hero__arc--2 {
+  width: min(86rem, 110vw);
+  transform: translate(-50%, 34%);
+  border-color: rgba(185, 167, 255, 0.18);
+}
+
+/* 首屏入场：标题/导语沿用旧规则，新增的索引行与右栏补上同一节奏。
+   CSS 默认仍是最终态，只有 JS 挂上 .is-entering 才从下方 18px 淡入。 */
+.hero__start,
+.hero__aside {
+  opacity: 1;
+  transition:
+    opacity 0.9s var(--ease),
+    transform 1.05s var(--ease);
+}
+
+.is-entering .hero__start,
+.is-entering .hero__aside {
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.is-entering .hero__aside {
+  transition-delay: 0.3s;
+}
+
+.is-entering .hero__start {
+  transition-delay: 0.38s;
+}
+
+/* ---------- 30.5 区块标题：编号 + 细线，像文档目录 ---------- */
+
+.section {
+  padding-top: clamp(4.5rem, 2.5rem + 6vw, 8rem);
+}
+
+.section__head {
+  gap: 0.85rem;
+  margin-bottom: clamp(2rem, 3vw, 3rem);
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.section__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+}
+
+.section__eyebrow span {
+  color: var(--accent);
+}
+
+.section__title {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.3rem + 1.8vw, 2.6rem);
+  font-weight: 500;
+  line-height: 1.18;
+  letter-spacing: -0.04em;
+  max-width: 24ch;
+}
+
+.section__head--row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.section__more {
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.section__more:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---------- 30.6 卡片：1px 边框的薄片 ---------- */
+
+.card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: clamp(1rem, 0.75rem + 1vw, 1.5rem);
+}
+
+.card {
+  padding: clamp(1.35rem, 1.1rem + 1vw, 1.8rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.022);
+  box-shadow: none;
+  transform: none;
+}
+
+/* 旧的斜向扫光属于玻璃反光，平板上没有物理依据，直接停用 */
+.card::after {
+  display: none;
+}
+
+.card:hover {
+  border-color: var(--glass-border-hover);
+  background: rgba(255, 255, 255, 0.032);
+  box-shadow: none;
+}
+
+.card__body {
+  gap: 0.75rem;
+  padding-top: clamp(0.9rem, 1.3vw, 1.2rem);
+  border-top: 1px solid var(--border);
+}
+
+.card__title {
+  font-size: clamp(1.05rem, 0.98rem + 0.35vw, 1.2rem);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.015em;
+}
+
+.card:hover .card__title {
+  color: var(--accent-hover);
+}
+
+.card__desc {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.card__meta {
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+}
+
+.card__tags {
+  margin-top: 0.35rem;
+}
+
+/* 首篇大卡：用一层从左上角扩散的紫光强调，不加边框包裹或装饰图 */
+.card--feature {
+  padding: clamp(1.7rem, 1.2rem + 2.6vw, 3rem);
+  border-color: rgba(185, 167, 255, 0.18);
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.14), transparent 55%),
+    rgba(255, 255, 255, 0.022);
+}
+
+.card--feature .card__title {
+  max-width: 24ch;
+  font-size: clamp(1.6rem, 1.2rem + 2vw, 2.7rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+
+.card--feature .card__desc {
+  max-width: 58ch;
+  font-size: 0.9875rem;
+  line-height: 1.7;
+}
+
+.card--feature .card__body {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 宽屏首篇改成左右分栏：标题在左，摘要在右。
+   整行卡片原本标题、摘要、标签竖着堆，右侧两三百像素是空的；
+   分栏后标题仍然占主导，但卡片高度少掉近一半。 */
+@media (min-width: 64.001rem) {
+  .card--feature {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(18rem, 0.88fr);
+    column-gap: clamp(2.5rem, 5vw, 5rem);
+    align-items: stretch;
+  }
+
+  .card--feature .card__head {
+    min-height: 0;
+  }
+
+  .card--feature .card__title {
+    max-width: 100%;
+    font-size: clamp(1.6rem, 1.1rem + 1.9vw, 2.5rem);
+  }
+
+  .card--feature .card__body {
+    margin-top: 0;
+    align-content: center;
+    padding-top: 0;
+    padding-left: clamp(1.5rem, 3vw, 3rem);
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .card--feature .card__desc {
+    max-width: 46ch;
+  }
+}
+
+/* 全局 .glass 同步退回薄片，订阅页等复用它的面板不会残留旧材质 */
+.glass {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: var(--glass-bg);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.glass--hover:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+  box-shadow: none;
+  transform: none;
+}
+
+/* ---------- 30.6b 内页小部件：和卡片同一套面板 ---------- */
+
+/* 订阅页、搜索页的小部件早于本次改版，还带着 0.8rem 圆角和更深底色。
+   统一成 6px 直角面板，页面之间切换时不会突然冒出另一种材质。 */
+.feed-box,
+.search-box {
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.copy-btn {
+  border-radius: 3px;
+}
+
+.reader-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reader-list a {
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.reader-list a:hover {
+  border-color: rgba(185, 167, 255, 0.32);
+  background: rgba(255, 255, 255, 0.032);
+}
+
+.search-result a {
+  border-radius: var(--radius);
+}
+
+.search-result a:hover {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.022);
+}
+
+/* 左侧栏目名是页面内的二级导航，不是装饰，别压到几乎看不见 */
+.doc-grid__label {
+  color: var(--text-muted);
+}
+
+@media (max-width: 46rem) {
+  .reader-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- 30.7 标签与按钮 ---------- */
+
+.tag {
+  padding: 0.28rem 0.6rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+a.tag:hover {
+  border-color: rgba(185, 167, 255, 0.45);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tag-cloud {
+  gap: 0.5rem;
+}
+
+.tag-cloud--big .tag {
+  padding: 0.42rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+}
+
+.btn {
+  padding: 0.75rem 1.3rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+}
+
+.btn--solid {
+  background: var(--accent-solid);
+  color: #fff;
+}
+
+.btn--solid:hover {
+  background: #8f74ff;
+  color: #fff;
+}
+
+.btn--ghost {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn--ghost:hover {
+  border-color: rgba(185, 167, 255, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---------- 30.8 收尾区：整行色带，而不是一个圆角盒子 ---------- */
+
+.outro {
+  margin-top: clamp(4.5rem, 2.5rem + 6vw, 8rem);
+  padding: clamp(3rem, 6vw, 5.5rem) 0 clamp(3.5rem, 7vw, 6rem);
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.055), transparent 65%);
+}
+
+.outro__box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(1.4rem, 4vw, 4rem);
+  align-items: start;
+  justify-items: start;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.outro__title {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(1.8rem, 1.2rem + 2.6vw, 3rem);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+}
+
+.outro__text {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  max-width: 44ch;
+  font-size: 0.9875rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+}
+
+.outro__box .pill-group {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0.4rem;
+}
+
+/* 内页的收尾区在 .wrap 里面：整行色带在这里会突然从内容宽度开始、再突然结束，
+   所以改成一块带边框的面板；首页的 .outro 在 .wrap 外面，保留整行色带。 */
+.wrap > .outro {
+  margin-top: clamp(3.5rem, 2rem + 5vw, 6rem);
+  padding: clamp(1.6rem, 1rem + 2.4vw, 2.75rem);
+  border: 1px solid var(--border);
+  border-top-color: rgba(185, 167, 255, 0.22);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(124, 58, 237, 0.12), transparent 60%),
+    rgba(255, 255, 255, 0.018);
+}
+
+/* 旧的八角内衬光晕在玻璃盒子里就有，现在外层面板自己负责发光。
+   留着会在右半栏叠出一块边界生硬的亮区。 */
+.outro__box::before {
+  display: none;
+}
+
+/* ---------- 30.9 内页与文章页 ---------- */
+
+.page-hero {
+  padding: clamp(3.5rem, 2.5rem + 4vw, 6rem) 0 clamp(2rem, 1.5rem + 2vw, 3rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.page-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: clamp(1rem, 2vw, 1.5rem);
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  color: var(--text-faint);
+}
+
+.page-hero__eyebrow::before {
+  content: '';
+  width: 0.35rem;
+  height: 0.35rem;
+  flex: none;
+  background: var(--accent);
+}
+
+.page-hero__title {
+  font-size: clamp(2.4rem, 1.5rem + 4vw, 4.5rem);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+.page-hero__lede {
+  max-width: 50ch;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+.post-hero {
+  padding: clamp(3rem, 2rem + 4vw, 5.5rem) 0 clamp(2rem, 3vw, 3rem);
+  border-bottom: 1px solid var(--border);
+}
+
+.post-hero__eyebrow {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.post-hero__title {
+  max-width: 30ch;
+  font-size: clamp(2rem, 1.4rem + 3.2vw, 3.75rem);
+  font-weight: 500;
+  line-height: 1.16;
+  letter-spacing: -0.04em;
+}
+
+.post-hero__desc {
+  max-width: 56ch;
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+
+.post-body {
+  margin-top: clamp(2rem, 4vw, 3.5rem);
+}
+
+/* 年份标签与正文小标签统一成等宽字 */
+.year-group__label {
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+/* 404 主标题和全站标题保持同一字重，不再单独用 600 */
+.notfound__title {
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+/* 正文标题前的色块改成一道会淡出的短线：更像章节标记，不是色块 */
+.prose h2 {
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.prose h2::before {
+  width: 2rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+/* 代码块：底色统一到新面板，token 由 tokyo-night 提供。
+   Shiki 会给每个 token span 写一次主题底色，这里把它设为透明，
+   否则整块代码会被 span 自己的背景覆盖成主题默认的浅蓝灰。 */
+.prose pre,
+.prose pre.astro-code {
+  background-color: #0b0814 !important;
+  border-color: var(--border);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+
+.astro-code,
+.astro-code span {
+  background-color: transparent !important;
+}
+
+.code-bar {
+  border-color: var(--border);
+  background: var(--bg-subtle);
+}
+
+/* ---------- 30.10 窄屏 ---------- */
+
+@media (max-width: 64rem) {
+  .hero__inner {
+    grid-template-columns: 1fr;
+    gap: clamp(2rem, 5vw, 3rem);
+    padding-block: clamp(2.5rem, 6vh, 4.5rem);
+  }
+
+  .hero__aside {
+    justify-self: start;
+    max-width: none;
+    padding-top: clamp(1.5rem, 3vw, 2rem);
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+
+  .hero__aside-text {
+    max-width: 54ch;
+  }
+
+  .hero__stats {
+    max-width: 34rem;
+    margin-top: clamp(1.5rem, 4vw, 2.25rem);
+    padding-top: 0;
+  }
+
+  .hero__foot {
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+  }
+
+  .hero__topic-list {
+    max-width: none;
+  }
+}
+
+@media (max-width: 46rem) {
+  :root {
+    --header-h: 4rem;
+  }
+
+  .site-header__inner {
+    gap: 0.9rem;
+  }
+
+  .site-nav {
+    gap: 0.9rem;
+  }
+
+  .site-nav .nav-search {
+    margin-left: 0;
+    padding: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .site-nav .nav-search__label {
+    display: none;
+  }
+
+  .hero__title {
+    letter-spacing: -0.035em;
+  }
+
+  .hero__start {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .hero__start-meta {
+    display: none;
+  }
+
+  .hero__stat-value {
+    font-size: clamp(1.65rem, 1.3rem + 1.8vw, 2.1rem);
+  }
+
+  .hero__foot {
+    justify-content: flex-start;
+    padding-bottom: 1.1rem;
+  }
+
+  .hero__topic-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .hero__topic {
+    padding-block: 0.55rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .hero__topic:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .hero__scroll {
+    display: none;
+  }
+
+  .section__head--row {
+    grid-template-columns: 1fr;
+  }
+
+  .section__more {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .outro__box {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .outro__title {
+    grid-column: 1;
+    grid-row: auto;
+    max-width: 20ch;
+  }
+
+  .outro__text {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .outro__box .pill-group {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .post-nav {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 24rem) {
+  .brand span {
+    display: none;
+  }
+
+  .site-nav {
+    gap: 0.7rem;
+  }
+}
+
+/* 减少动态效果：弧光与索引不动，内容直接呈现 */
+@media (prefers-reduced-motion: reduce) {
+  .is-entering .hero__start,
+  .is-entering .hero__aside {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hero__scroll-arrow {
+    animation: none;
+    opacity: 0.8;
+  }
+}

@@ -136,7 +136,7 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   const titleText = lines
     .map(
       (line, i) =>
-        `<text x="72" y="${firstBaseline + i * lineHeight}" font-family="${FONT}" font-size="${size}" font-weight="600" fill="#e8ecf4" letter-spacing="-1">${escapeXml(line)}</text>`,
+        `<text x="72" y="${firstBaseline + i * lineHeight}" font-family="${FONT}" font-size="${size}" font-weight="500" fill="#f7f4fd" letter-spacing="-1">${escapeXml(line)}</text>`,
     )
     .join('\n    ');
 
@@ -145,18 +145,18 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0d1524"/>
-      <stop offset="0.55" stop-color="#080c15"/>
-      <stop offset="1" stop-color="#06080e"/>
+      <stop offset="0" stop-color="#0e0a1a"/>
+      <stop offset="0.55" stop-color="#090612"/>
+      <stop offset="1" stop-color="#07050c"/>
     </linearGradient>
     <radialGradient id="glowA" cx="0.84" cy="0.12" r="0.62">
-      <stop offset="0" stop-color="#6cb4e0" stop-opacity="0.22"/>
-      <stop offset="0.55" stop-color="#6cb4e0" stop-opacity="0.06"/>
-      <stop offset="1" stop-color="#6cb4e0" stop-opacity="0"/>
+      <stop offset="0" stop-color="#7c5cff" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#7c5cff" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#7c5cff" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="glowB" cx="0.08" cy="0.92" r="0.55">
-      <stop offset="0" stop-color="#8b7cf6" stop-opacity="0.14"/>
-      <stop offset="1" stop-color="#8b7cf6" stop-opacity="0"/>
+      <stop offset="0" stop-color="#b9a7ff" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#b9a7ff" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
@@ -164,22 +164,22 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   <rect width="${W}" height="${H}" fill="url(#glowA)"/>
   <rect width="${W}" height="${H}" fill="url(#glowB)"/>
 
-  <g fill="none" stroke="#6cb4e0">
-    <circle cx="1092" cy="132" r="74" stroke-opacity="0.12" stroke-width="1.5"/>
-    <circle cx="1092" cy="132" r="136" stroke-opacity="0.08" stroke-width="1.5"/>
-    <circle cx="1092" cy="132" r="206" stroke-opacity="0.05" stroke-width="1.5"/>
+  <g fill="none" stroke="#b9a7ff">
+    <circle cx="1092" cy="132" r="74" stroke-opacity="0.16" stroke-width="1.5"/>
+    <circle cx="1092" cy="132" r="136" stroke-opacity="0.1" stroke-width="1.5"/>
+    <circle cx="1092" cy="132" r="206" stroke-opacity="0.06" stroke-width="1.5"/>
     <circle cx="1092" cy="132" r="286" stroke-opacity="0.03" stroke-width="1.5"/>
   </g>
 
-  <rect x="72" y="58" width="40" height="3" rx="1.5" fill="#6cb4e0"/>
+  <rect x="72" y="58" width="40" height="3" rx="1.5" fill="#b9a7ff"/>
 
-  <text x="72" y="96" font-family="${FONT}" font-size="21" letter-spacing="3" fill="#8b94a7">${escapeXml(eyebrow)}</text>
+  <text x="72" y="96" font-family="${FONT}" font-size="21" letter-spacing="3" fill="#a79cb8">${escapeXml(eyebrow)}</text>
 
   ${titleText}
 
   <line x1="72" y1="512" x2="1128" y2="512" stroke="#ffffff" stroke-opacity="0.09"/>
 
-  <text x="72" y="556" font-family="${FONT}" font-size="22" fill="#8b94a7">${escapeXml(metaText)}</text>
-  <text x="1128" y="556" font-family="${MONO}" font-size="21" letter-spacing="0.5" text-anchor="end" fill="#6cb4e0">wx-blog.github.io</text>
+  <text x="72" y="556" font-family="${FONT}" font-size="22" fill="#a79cb8">${escapeXml(metaText)}</text>
+  <text x="1128" y="556" font-family="${MONO}" font-size="21" letter-spacing="0.5" text-anchor="end" fill="#b9a7ff">wx-blog.github.io</text>
 </svg>`;
 }

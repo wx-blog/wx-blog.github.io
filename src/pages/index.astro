@@ -13,8 +13,8 @@ const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
    手写清单需要跟实际文章永远保持同步——加了新方向忘了改这里，
    首屏就会出现点进去空空如也的死链。用标签则天然自洽：
    有文章才有标签，没文章的方向不会出现在首屏。
-   上限 6 个（两行三列），再多首屏就被撑长了。 */
-const topics = tags.slice(0, 6);
+   上限 4 个，正好排满首屏底部的一行索引。 */
+const topics = tags.slice(0, 4);
 
 /* 首屏推荐：用学习路径里的第一篇，而不是"最新一篇"。
    32 篇文章的 pubDate 都是同一天，没有 pubTime 时谁排第一都是文件名顺序，
@@ -25,94 +25,108 @@ const recommended =
 
 <BaseLayout>
   <!--
-    首屏：居中极简构图。
+    首屏：左对齐的两栏构图 + 底部索引。
     ------------------------------------------------------------
-    这一版的关键判断：**极简 ≠ 空**。
+    参考的是一张 fintech 落地页：近黑底、细竖线、左侧超大标题、
+    右侧短段与数据、底部紫色地平线和大弧线。
+    这里只借它的**骨架**（对齐方式、层级、留白），不搬它的文案，
+    也不使用任何与站内事实无关的数字。
 
-    上一版撤掉粒子场之后，首屏只剩「文字 + 一块窄胶囊（数据条）」，
-    左右两侧全空。当时的想法是"越少越高级"，但实际观感是
-    「没什么东西，很单调」——因为极简的高级感来自
-    **少量实体 + 大留白**，实体本身要有分量和层次。
-    只剩一块小胶囊飘在空白中央，读起来是"没做完"，不是"克制"。
+    为什么从居中改成左对齐：
+    居中构图只有一条中轴线，所有元素的起点相同，层级只能靠字号区分；
+    左对齐把标题、正文、索引串成一条竖线，右侧留白给数据，
+    视线从上到下只需要沿着一侧走，信息更容易被扫完。
 
-    所以这一版加回实体，但**加的是同一套语言里的实体**：
-      · 数据条     —— 一条横向的玻璃工具条；
-      · 技术方向卡 —— 3×2 的玻璃网格，每张是一块玻璃。
-
-    首屏因此从 1 块玻璃变成 7 块，但构图没变（仍然居中、单列、
-    无装饰），信息密度仍然很低。变的只是"实体感"。
-
-    至于玻璃为什么看起来更像玻璃了，见 global.css 第 26 节——
-    简单说：**玻璃的可见度取决于它背后有没有可模糊的东西**，
-    光给玻璃加材质是不够的，还得在它背后铺光。
-
-    粒子场没有再回来：它和极简是两种语言（粒子靠密度和光，
-    画面是"满"的；极简靠留白和材质，画面是"空"的），
-    而现在加的是**材质**，不是**效果**——这两者不冲突。
+    地平线弧线纯 CSS 绘制，放在 .hero 内部而不是全站背景：
+    它属于首屏构图，带进列表页/文章页只会干扰阅读。
   -->
   <section class="hero">
     <div class="hero__inner">
-      <p class="hero__eyebrow" data-hero="1">
-        <span class="pulse-dot" aria-hidden="true"></span>
-        <span>技术笔记 · 学习记录</span>
-      </p>
+      <div class="hero__main">
+        <p class="hero__eyebrow" data-hero="1">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          <span class="mono-label">LINUX / CLOUD / INFRA</span>
+        </p>
 
-      <h1 class="hero__title" data-hero="2">
-        把踩过的坑，<br />写成<span class="grad-text">能复现</span>的笔记。
-      </h1>
+        <h1 class="hero__title" data-hero="2">
+          把踩过的坑，<br />写成<span class="grad-text">能复现</span>的笔记
+        </h1>
 
-      <p class="hero__lede" data-hero="3">
-        Linux 与云计算方向的实验笔记，以及备考、毕设和大创路上的一些记录。
-      </p>
+        <p class="hero__lede" data-hero="3">
+          实验记录、踩坑复盘，以及能直接贴进终端的命令。
+        </p>
 
-      <!-- 毛玻璃数据条：首屏的"横向实体" -->
-      <div class="hero__glass glass" data-hero="4">
-        <span><strong>{posts.length}</strong> 篇文章</span>
-        <span class="hero__dot" aria-hidden="true">·</span>
-        <span><strong>{tags.length}</strong> 个标签</span>
-        <span class="hero__dot" aria-hidden="true">·</span>
-        <span>累计约 <strong>{totalMinutes}</strong> 分钟阅读</span>
-        <span class="hero__dot" aria-hidden="true">·</span>
-        <a href="/subscribe/">订阅</a>
+        {
+          recommended && (
+            <a class="hero__start" href={postUrl(recommended.id)} data-hero="4">
+              <span class="hero__start-meta">
+                <span class="mono-label">START HERE</span>
+                <span class="hero__start-rule" aria-hidden="true" />
+              </span>
+              <span class="hero__start-title">{recommended.data.title}</span>
+              <span class="hero__start-arrow" aria-hidden="true">
+                ↗
+              </span>
+            </a>
+          )
+        }
       </div>
 
-      {/* 首屏给一篇文章直接入口。
-          大卡片虽然就在下面，但它在折叠线以下，访客第一眼看不到。 */}
-      {
-        recommended && (
-          <p class="hero__latest">
-            不知道从哪读：<a href={postUrl(recommended.id)}>{recommended.data.title}</a>
-          </p>
-        )
-      }
+      <aside class="hero__aside" data-hero="5">
+        <p class="hero__aside-label mono-label">// FIELD NOTES</p>
+        <p class="hero__aside-text">
+          Linux 与云计算方向的实验记录。命令都实际跑过，报错、取舍和最后怎么绕过去的，一并写清楚。
+        </p>
 
-      {
-        topics.length > 0 && (
-          /* 技术方向卡：首屏的"块状实体"。
-             整卡可点，所以内部不再放链接——一个 <a> 就是整张卡。 */
-          <div class="hero__topics" data-hero="5">
-            {topics.map(([tag, count]) => (
-              <a class="glass glass--hover glass-tile" href={tagUrl(tag)}>
-                <span class="glass-tile__name">{tag}</span>
-                <span class="glass-tile__meta">{count} 篇</span>
-              </a>
-            ))}
+        <div class="hero__stats">
+          <div class="hero__stat">
+            <span class="hero__stat-value">{posts.length}</span>
+            <span class="hero__stat-label mono-label">ARTICLES</span>
           </div>
-        )
-      }
+          <div class="hero__stat">
+            <span class="hero__stat-value">{tags.length}</span>
+            <span class="hero__stat-label mono-label">TOPICS</span>
+          </div>
+          <div class="hero__stat">
+            <span class="hero__stat-value">{totalMinutes}</span>
+            <span class="hero__stat-label mono-label">MIN READ</span>
+          </div>
+        </div>
+      </aside>
     </div>
 
-    <a class="hero__scroll" href="#latest" aria-label="向下滚动">
-      <span aria-hidden="true">↓</span>
-    </a>
+    <div class="hero__foot">
+      {
+        topics.length > 0 && (
+          <nav class="hero__topic-list" aria-label="技术方向">
+            {topics.map(([tag, count]) => (
+              <a class="hero__topic" href={tagUrl(tag)}>
+                <span class="hero__topic-name">{tag}</span>
+                <span class="hero__topic-count">{String(count).padStart(2, '0')}</span>
+              </a>
+            ))}
+          </nav>
+        )
+      }
+
+      <a class="hero__scroll" href="#latest">
+        <span class="mono-label">SCROLL</span>
+        <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
+      </a>
+    </div>
+
+    <div class="hero__horizon" aria-hidden="true">
+      <span class="hero__arc hero__arc--1"></span>
+      <span class="hero__arc hero__arc--2"></span>
+    </div>
   </section>
 
   <section class="section" id="latest">
     <div class="wrap">
       <div class="section__head section__head--row">
-        <p class="section__eyebrow" data-reveal>最近整理</p>
+        <p class="section__eyebrow" data-reveal><span>01</span> / RECENT</p>
         <h2 class="section__title" data-reveal style="--d:.05s">最近整理的几篇</h2>
-        <a class="section__more" href="/blog/">全部文章 →</a>
+        <a class="section__more" href="/blog/">全部文章 ↗</a>
       </div>
 
       <PostList posts={latest} featureFirst />
@@ -124,10 +138,14 @@ const recommended =
       <section class="section">
         <div class="wrap">
           <div class="section__head section__head--row">
-            <p class="section__eyebrow" data-reveal>索引</p>
-            <h2 class="section__title" data-reveal style="--d:.05s">按标签找</h2>
+            <p class="section__eyebrow" data-reveal>
+              <span>02</span> / INDEX
+            </p>
+            <h2 class="section__title" data-reveal style="--d:.05s">
+              按标签找
+            </h2>
             <a class="section__more" href="/tags/">
-              全部标签 →
+              全部标签 ↗
             </a>
           </div>
 
@@ -145,7 +163,7 @@ const recommended =
 
   <section class="outro">
     <div class="wrap">
-      <div class="outro__box glass" data-reveal>
+      <div class="outro__box" data-reveal>
         <h2 class="outro__title">这些笔记值不值得读？</h2>
         <p class="outro__text">
           标准只有一条：照着做能复现。写下的每条命令我自己跑过，踩坑的地方会写明当时的报错和最后怎么绕过去的。
