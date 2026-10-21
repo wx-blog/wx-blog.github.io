@@ -2,7 +2,7 @@
 title: Shell 基础与文本处理：从 loop 挂载、grep 正则到 Shell 脚本
 description: 从 shell 种类、提示符与 history 等命令行效率，到把文件当磁盘挂载的 loop 设备与按需 automount，再到 grep/egrep 正则与 Shell 脚本的变量、循环、判断，并点出变量拼接、"$*"与"$@"、loop 文件大小等踩坑。
 pubDate: 2026-09-21
-tags: [Linux, Shell, 文本处理]
+tags: [Linux]
 ---
 
 Shell 是你和 Linux 内核之间的翻译层，而文本处理是运维的日常。这篇把三块常被割裂的内容揉到一起：怎么把 Shell 用得更顺手、怎么把普通文件当成磁盘挂起来、以及 grep/脚本这些「处理文本和批量干活」的基本功。

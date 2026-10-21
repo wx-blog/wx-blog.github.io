@@ -2,7 +2,7 @@
 title: CephFS 架构与客户端挂载：MDS、内核驱动与 FUSE
 description: CephFS 是 Ceph 提供的 POSIX 兼容分布式文件系统，多台客户端可以同时挂载同一命名空间。这篇讲清 MDS 管元数据、OSD 管数据的分工，跑通 kernel driver 与 FUSE 两条挂载路线，并覆盖配额与快照这两个日常运维点。
 pubDate: 2026-09-21
-tags: [Ceph, CephFS, 文件系统]
+tags: [Ceph, 存储]
 ---
 
 CephFS 是 Ceph 提供的 POSIX 兼容分布式文件系统，和 RBD（块）、RGW（对象）并列为三大接口。它和单机文件系统最大的区别是：多台客户端可以同时挂载同一个命名空间、看到同一份文件，且数据跨 OSD 分布。这篇讲清架构，再跑通 kernel driver 与 FUSE 两种客户端挂载，以及配额、快照这些日常运维点。

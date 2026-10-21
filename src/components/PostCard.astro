@@ -1,6 +1,6 @@
 ---
 import type { Post } from '../utils/posts';
-import { formatDate, postUrl, readingTime, tagUrl } from '../utils/posts';
+import { cardExcerpt, formatDate, postUrl, readingTime, tagUrl } from '../utils/posts';
 
 interface Props {
   post: Post;
@@ -29,7 +29,7 @@ const href = postUrl(post.id);
   卡片的辨识度从"封面图配色"转移到"排版本身"——
   这也是极简风的常规做法：靠层级和留白区分，不靠图案。
 
-  右上角原本还有一个 `// 编号` 角标（postCode 生成的哈希短码）。
+  右上角原本还有一个 `// 编号` 角标（文章 ID 的哈希短码）。
   已按用户要求去掉：它既不参与点击、也不承载信息，
   纯装饰元素在极简构图里只会分散注意力。
 -->
@@ -44,7 +44,7 @@ const href = postUrl(post.id);
   </div>
 
   <div class="card__body">
-    {post.data.description && <p class="card__desc">{post.data.description}</p>}
+    {post.data.description && <p class="card__desc">{cardExcerpt(post.data.description)}</p>}
 
     <div class="card__meta">
       <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>

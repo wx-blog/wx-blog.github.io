@@ -2,7 +2,7 @@
 title: Ansible Lookups 与模板函数：lookup、query、now 与 undef
 description: Lookup 让 playbook 能从文件、数据库、API 等外部来源取数据，并且全在控制节点求值。这篇讲清 lookup 与 query 的区别、什么时候必须用 q()、now() 取当前时间，以及 undef() 这个能显式制造未定义变量的冷门函数。
 pubDate: 2026-09-21
-tags: [Ansible, Lookups, 自动化运维]
+tags: [Ansible]
 ---
 
 Playbook 里的数据不一定都写在变量文件里——密码可能在本地文件、配置可能来自外部系统。Lookup 插件就是干这个的：**从外部来源把数据取进模板系统**。

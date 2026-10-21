@@ -2,7 +2,7 @@
 title: 软件包管理到源码编译：dnf / rpm 与 nginx 编译安装全流程
 description: 从 dnf/yum 日常包管理、rpm 依赖边界，到 nginx 源码编译安装与 systemd 接管的完整流程，并讲清只下载不安装、历史回滚、编译缺包、80 端口冲突、SELinux 拦截等踩坑。
 pubDate: 2026-09-21
-tags: [Linux, 包管理, 编译安装]
+tags: [Linux]
 ---
 
 装软件这件事，90% 的情况用包管理器就够了；剩下 10% 需要源码编译（比如要定制模块、要特定版本）。这篇把「dnf / rpm 怎么用」「什么时候必须编译」「编译完怎么交给 systemd 管」串成一条线。

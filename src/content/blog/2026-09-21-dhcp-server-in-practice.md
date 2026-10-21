@@ -1,7 +1,7 @@
 ---
 title: DHCP 服务实战：DORA 交互、地址池与 MAC 绑定
 description: 用 kea-dhcp4 讲清 DHCP 的 DORA 四次交互与租约续期时机，配出动态地址池与 option-data，再用 reservations 做 MAC 绑定固定 IP，并附抓包解读与常见排错，适合实验室或内网批量装机时交付可复现的网络参数。
-tags: [Linux, DHCP, 网络服务]
+tags: [网络]
 pubDate: 2026-09-21
 ---
 

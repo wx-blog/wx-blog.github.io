@@ -2,7 +2,7 @@
 title: 磁盘分区三件套：fdisk / gdisk / parted 一次讲清
 description: 讲清 fdisk、gdisk、parted 三种分区工具的差异与用法：MBR 与 GPT 怎么选、主分区/扩展分区/逻辑分区如何划分、parted 该用 MiB 还是 MB，以及新盘识别与分区对齐的踩坑。
 pubDate: 2026-09-21
-tags: [Linux, 存储, RHCSA]
+tags: [Linux, 存储]
 ---
 
 拿到一块新硬盘，第一步永远是分区（Partitioning），而不是急着格式化。这篇把三个最常用工具——`fdisk`、`gdisk`、`parted`——放在同一张台面上对比，让你知道什么时候该用哪个，以及那些只有亲手踩过才会记住的坑。

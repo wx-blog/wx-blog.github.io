@@ -2,7 +2,7 @@
 title: Linux 权限模型一次讲透：基本权限 / SUID·SGID·Sticky / umask / ACL
 description: 系统讲透 Linux 文件权限：UGO 基础权限、SUID/SGID/Sticky 特殊权限、umask 默认掩码与 ACL 细粒度授权，读完能独立配置权限并排查"没权限"问题。
 pubDate: 2026-09-21
-tags: [Linux, 权限, RHCSA]
+tags: [Linux, RHCSA, 安全]
 ---
 
 Linux 的权限模型是日常管理里绕不开的基础。它看起来就九个字母（rwxrwxrwx），但真要配对一个共享目录、算准一个 umask、或者看懂 /tmp 后面那个 t，里面门道不少。这篇把 UGO 基础权限、三种特殊权限、umask 和 ACL 串起来讲一遍，力求脱离任何课堂语境也能读懂。

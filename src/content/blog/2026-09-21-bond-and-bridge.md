@@ -1,7 +1,7 @@
 ---
 title: bond 与 bridge：Linux 链路聚合与软件网桥
 description: 用 nmcli 创建 active-backup 与 802.3ad 绑定实现高可用与带宽叠加，读懂 /proc/net/bonding 的故障转移状态，再建软件网桥 bridge，说明 bond 之上叠 bridge 的组合用法与排错，适合需要链路冗余或汇聚带宽的服务器与虚拟化宿主机。
-tags: [Linux, 网络, bond]
+tags: [网络, Linux]
 pubDate: 2026-09-21
 ---
 

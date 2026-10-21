@@ -2,7 +2,7 @@
 title: Docker 基础：从安装、容器生命周期到用 Dockerfile 自制镜像
 description: 一篇跑通 Docker 单机核心用法：环境准备与镜像加速、容器的创建/启动/停止/删除与重启策略、镜像的拉取/打标签/删除，以及用 Dockerfile 制作镜像（含多阶段构建）并推送到私有仓库。读完能独立在 Linux 上部署第一个容器化应用。
 pubDate: 2026-09-21
-tags: [Docker, 容器]
+tags: [Docker]
 ---
 
 Docker 把"应用 + 运行环境"打包成一个可移植的镜像（Image），镜像跑起来就是容器（Container）。这篇把单机上最常用的动作串一遍：先把引擎装好、能拉镜像，再搞清楚容器从生到死的过程，最后学会用 Dockerfile 把你自己写的程序做成镜像。命令全部在 Rocky Linux / RHEL 系上验证过，复制到同环境即可复现。

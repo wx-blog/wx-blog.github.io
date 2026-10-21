@@ -1,7 +1,7 @@
 ---
 title: 邮件服务与 TLS：Postfix 虚拟域映射与 Dovecot 加密收件
 description: 用 Postfix 做发信与中转、Dovecot 做 IMAP/POP3 收件，通过 virtual_alias_maps 支持多邮件域，再签发 SAN 证书开启 SMTPS/IMAPS 加密通道，并覆盖自签证书不信任、TLS 协商降级、收件鉴权失败等排错要点。目标是搭建一套从发信到收信全链路加密、可承载多个域名的企业邮件服务。
-tags: [Linux, 邮件服务, TLS]
+tags: [安全, Linux]
 pubDate: 2026-09-21
 ---
 

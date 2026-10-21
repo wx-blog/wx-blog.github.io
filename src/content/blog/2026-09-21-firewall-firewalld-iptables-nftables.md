@@ -1,7 +1,7 @@
 ---
 title: 防火墙三件套：firewalld、iptables 与 nftables 怎么选怎么用
 description: 理清 firewalld 区域模型、iptables 四表五链、nftables 原子规则集三者的关系与边界，给出 rich-rule、端口转发、SNAT 与持久化的实战命令，并标注常见排错点，重点说明生产环境如何取舍以及临时规则怎样转永久以免重启丢失配置。
-tags: [Linux, 防火墙, 网络安全]
+tags: [网络, 安全]
 pubDate: 2026-09-21
 ---
 

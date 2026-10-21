@@ -2,7 +2,7 @@
 title: RHCSA 备考：LVM 命令速查与三个容易踩的坑
 description: LVM 是 RHCSA 考试的必考项，命令不多但组合起来容易乱。这里按「建→扩→缩→迁→删」理一遍，并记下三个我反复出错的地方。
 pubDate: 2026-09-15
-tags: [Linux, RHCSA, 存储]
+tags: [RHCSA, Linux, 存储]
 ---
 
 RHCSA 里 LVM 出现的频率极高，而且它不只是考命令，还考你对层级关系的理解。这篇按操作流程整理一遍。

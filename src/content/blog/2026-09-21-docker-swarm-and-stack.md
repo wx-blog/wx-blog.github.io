@@ -2,7 +2,7 @@
 title: Swarm 集群与 Stack 应用部署：从节点组建到多副本上线
 description: 用两台机器组建 Docker Swarm 集群（manager + worker），打通防火墙与自动加锁，再用 docker stack 把 Compose 应用部署成多副本服务并做滚动更新。读完能独立搭一个高可用容器集群，并避开 worker 拉不到镜像、端口没放行这类典型故障。
 pubDate: 2026-09-21
-tags: [Docker, Swarm, 容器编排]
+tags: [Docker]
 ---
 
 当容器多到一台机器装不下，或者你想让服务挂了自动漂到别的机器，就需要集群。Docker Swarm 是 Docker 自带的集群模式：几台装了 Docker 的机器组成一个集群，你只管声明"要几个副本"，Swarm 自己挑节点调度。这篇用一 manager 一 worker 两台机器，把集群建起来，再用 `docker stack` 把一个 Web+Redis 应用部署成多副本服务。

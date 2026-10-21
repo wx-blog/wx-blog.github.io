@@ -1,0 +1,39 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedPosts } from '../utils/posts';
+
+const posts = await getPublishedPosts();
+const recommended =
+  posts.find((p) => p.id === '2026-09-21-linux-permission-model') ?? posts[0];
+---
+
+<BaseLayout
+  title="页面不存在"
+  description="这个地址没有对应的页面，可能是链接写错了，或者文章已经改名。"
+  noindex
+>
+  <div class="wrap">
+    <section class="notfound">
+      <p class="notfound__code" aria-hidden="true">404</p>
+      <h1 class="notfound__title">这一页不存在</h1>
+      <p class="notfound__text">
+        地址可能写错了，也可能是我改过文章的路径。<br />
+        下面几个入口基本能把你带回正轨。
+      </p>
+
+      <div class="notfound__actions">
+        <a class="btn btn--solid" href="/">回到首页</a>
+        <a class="btn btn--ghost" href="/blog/">全部文章</a>
+        <a class="btn btn--ghost" href="/search/">搜索</a>
+      </div>
+
+      {
+        recommended && (
+          <p class="hero__latest" style="margin-top:2rem">
+            或者从这篇开始：<a href={`/blog/${recommended.id}/`}>{recommended.data.title}</a>
+          </p>
+        )
+      }
+    </section>
+  </div>
+</BaseLayout>

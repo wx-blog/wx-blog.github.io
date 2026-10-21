@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
 
       <div class="site-footer__links">
         {
-          SITE.social.map((item) => (
+          [...SITE.footerLinks, ...SITE.social].map((item) => (
             <a href={item.href} rel={item.href.startsWith('http') ? 'noopener' : undefined}>
               {item.label}
             </a>

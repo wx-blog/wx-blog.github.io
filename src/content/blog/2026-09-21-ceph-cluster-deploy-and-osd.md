@@ -2,7 +2,7 @@
 title: Ceph 集群部署与 OSD 全生命周期运维
 description: 用 cephadm 在 Rocky Linux 10 上把 Ceph 集群从零拉起来，覆盖 OSD 的添加、删除、替换、热备，以及 WAL/DB/DATA 分离的进阶用法。重点讲清每一步之后集群为什么还是 HEALTH_WARN——这些坑才是生产里真正卡人的地方。
 pubDate: 2026-09-21
-tags: [Ceph, 分布式存储, 集群]
+tags: [Ceph]
 ---
 
 这篇用 cephadm（Squid 19.2.3，跑在 Rocky Linux 10 上）把 Ceph 集群从零拉起来，并覆盖 OSD 的完整生命周期：添加、删除、替换、热备、以及 WAL/DB/DATA 分离的进阶玩法。笔记里最值钱的是"每一步之后为什么集群还是 HEALTH_WARN"——这些坑才是生产里真正卡人的地方。

@@ -23,18 +23,22 @@ export const SITE = {
    */
   url: 'https://wx-blog.github.io',
 
-  /** 页头导航 */
+  /** 页头导航。窄屏放不下第 4 项，所以「关于」「搜索」放在页脚。 */
   nav: [
+    { label: '开始', href: '/start/' },
     { label: '文章', href: '/blog/' },
     { label: '标签', href: '/tags/' },
+  ],
+
+  /** 页脚站点内链接（与下方外链分开，避免「关于」出现在社交一栏里） */
+  footerLinks: [
     { label: '关于', href: '/about/' },
+    { label: '搜索', href: '/search/' },
+    { label: '订阅', href: '/subscribe/' },
   ],
 
   /** 页脚外链，直接把不需要的删掉 */
-  social: [
-    { label: 'GitHub', href: 'https://github.com/wx-blog' },
-    { label: 'RSS', href: '/rss.xml' },
-  ],
+  social: [{ label: 'GitHub', href: 'https://github.com/wx-blog' }],
 
   /** 首页每页文章数 */
   postsPerPage: 20,

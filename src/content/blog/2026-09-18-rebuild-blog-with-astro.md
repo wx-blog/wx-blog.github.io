@@ -2,7 +2,7 @@
 title: 重建博客：从 Hexo 换到 Astro 的取舍
 description: 旧站用 Hexo + Fluid 跑了很久，这次换成 Astro。说说为什么换、换了之后哪些地方真的变好了。
 pubDate: 2026-09-18
-tags: [博客, Astro, 前端]
+tags: [建站]
 ---
 
 这个站是第二次重建了。上一次是 Hexo + Fluid，写得不多，但每次打开都觉得慢——不是网络慢，是首页要先加载一串用不太上的 JS 才把标题显示出来。

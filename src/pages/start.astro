@@ -1,0 +1,151 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getPublishedPosts, postUrl, readingTime } from '../utils/posts';
+
+const posts = await getPublishedPosts();
+const byId = new Map(posts.map((p) => [p.id, p]));
+
+/**
+ * 学习路径。
+ *
+ * 为什么手写顺序而不是按标签自动分组：
+ * 标签只说明「属于哪一类」，不说明「先读哪篇」。同一个标签下的文章
+ * 之间有明确的前置关系（不懂权限就看不明白 SELinux；没跑过单机 Docker
+ * 直接看 Swarm 只会晕），这个顺序只能人工判断。
+ *
+ * 每个 id 都在下面的渲染里过一遍 byId：文章改名或删除时，
+ * 这一条会被自动跳过，而不是在页面上留下一个死链。
+ */
+const PATHS = [
+  {
+    title: 'Linux 与 RHCSA',
+    desc: '权限、Shell、磁盘、LVM、服务管理。这条线是其余所有路径的地基，建议先走完再碰别的。',
+    ids: [
+      '2026-09-21-linux-permission-model',
+      '2026-09-21-shell-basics-and-text-processing',
+      '2026-09-21-disk-partitioning-fdisk-gdisk-parted',
+      '2026-09-21-lvm-thin-vdo-stratis',
+      '2026-09-15-rhcsa-lvm-cheatsheet',
+      '2026-09-21-package-management-and-source-build',
+      '2026-09-21-systemd-and-ssh-hardening',
+      '2026-09-21-selinux-policy-management',
+    ],
+  },
+  {
+    title: '网络服务',
+    desc: '先弄懂地址怎么来（DHCP、IPv6、DNS），再谈链路与边界（bond、防火墙），最后才是具体服务。',
+    ids: [
+      '2026-09-21-dns-and-unbound',
+      '2026-09-21-dhcp-server-in-practice',
+      '2026-09-21-ipv6-icmpv6-ndp-slaac',
+      '2026-09-21-bond-and-bridge',
+      '2026-09-21-firewall-firewalld-iptables-nftables',
+      '2026-09-21-httpd-vhost-https-phpfpm',
+      '2026-09-21-mail-server-with-tls',
+    ],
+  },
+  {
+    title: '存储',
+    desc: '从单机的块设备与 RAID，到跨主机的共享文件系统，最后是 Ceph 这一套分布式存储。',
+    ids: [
+      '2026-09-21-iscsi-and-scsi-protocol',
+      '2026-09-21-raid-levels-and-failure-drill',
+      '2026-09-21-samba-and-nfs-kerberos',
+      '2026-09-21-ceph-cluster-deploy-and-osd',
+      '2026-09-21-ceph-crush-map',
+      '2026-09-21-cephfs-architecture',
+      '2026-09-21-ceph-dashboard-rbac',
+    ],
+  },
+  {
+    title: '容器与自动化',
+    desc: 'Docker 先单机再多机，Ansible 先清单再模板、Role，最后才是 Lookups 这类进阶用法。',
+    ids: [
+      '2026-09-21-docker-basics-and-dockerfile',
+      '2026-09-21-docker-network-and-storage',
+      '2026-09-21-docker-compose-in-practice',
+      '2026-09-21-docker-swarm-and-stack',
+      '2026-09-21-ansible-inventory',
+      '2026-09-21-ansible-jinja2-templates',
+      '2026-09-21-ansible-roles',
+      '2026-09-21-ansible-lookups',
+    ],
+  },
+  {
+    title: '虚拟化与信创迁移',
+    desc: 'KVM / PVE 打底，然后是鲲鹏迁移的实测两篇——这两篇里有真实的终端记录，适合先看写法。',
+    ids: [
+      '2026-09-21-kvm-libvirt-and-pve-cluster',
+      '2026-09-21-kunpeng-migration-practice',
+      '2026-09-21-x86-to-arm-cross-compilation',
+    ],
+  },
+];
+
+const paths = PATHS.map((path) => {
+  const items = path.ids
+    .map((id) => byId.get(id))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((post) => ({ post, minutes: readingTime(post.body) }));
+  return {
+    ...path,
+    items,
+    totalMinutes: items.reduce((sum, item) => sum + item.minutes, 0),
+  };
+}).filter((path) => path.items.length > 0);
+
+const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
+---
+
+<BaseLayout
+  title="从这里开始"
+  description="按依赖关系排好的阅读顺序：Linux 与 RHCSA、网络、存储、容器与自动化、虚拟化与信创迁移。"
+>
+  <div class="wrap">
+    <header class="page-hero">
+      <p class="page-hero__eyebrow" data-reveal>START HERE</p>
+      <h1 class="page-hero__title" data-reveal style="--d:.05s">
+        别按时间读，按依赖读。
+      </h1>
+      <p class="page-hero__lede" data-reveal style="--d:.12s">
+        目前 {posts.length} 篇、累计约 {totalMinutes} 分钟。下面五条路径按「先懂什么、再懂什么」排过序，
+        每条都能独立走完；不想挑的话，从第一条开始就行。
+      </p>
+    </header>
+
+    <div class="path-list">
+      {
+        paths.map((path, i) => (
+          <section class="path glass" data-reveal>
+            <header class="path__head">
+              <p class="path__index">{String(i + 1).padStart(2, '0')}</p>
+              <div class="path__intro">
+                <h2 class="path__title">{path.title}</h2>
+                <p class="path__desc">{path.desc}</p>
+                <p class="path__meta">
+                  {path.items.length} 篇 · 约 {path.totalMinutes} 分钟
+                </p>
+              </div>
+            </header>
+
+            <ol class="path__steps">
+              {path.items.map(({ post, minutes }, j) => (
+                <li class="path__step">
+                  <a href={postUrl(post.id)}>
+                    <span class="path__num">{String(j + 1).padStart(2, '0')}</span>
+                    <span class="path__name">{post.data.title}</span>
+                    <span class="path__time">{minutes} 分钟</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))
+      }
+    </div>
+
+    <p class="path-foot" data-reveal>
+      找不到想看的？可以<a href="/search/">搜一下</a>，或者<a href="/tags/">按标签</a>浏览全部文章。
+    </p>
+  </div>
+</BaseLayout>

@@ -2,7 +2,7 @@
 title: Ansible 主机清单深入：从 INI 到 podman 动态清单
 description: 清单是 Ansible 的地基，写法不复杂但坑很集中。这篇把清单的优先级、INI 与 YAML 的取舍、默认组与父子组、同名主机的重复执行问题讲清楚，并跑通一个基于 podman 插件的动态清单。
 pubDate: 2026-09-21
-tags: [Ansible, 自动化运维, 主机清单]
+tags: [Ansible]
 ---
 
 Ansible 里几乎所有"莫名其妙"的问题，最后都会回到清单上：为什么 pattern 匹配不到主机、为什么同一个节点被执行了三次、为什么组名会报警告。这篇把清单从最基础讲到动态生成。

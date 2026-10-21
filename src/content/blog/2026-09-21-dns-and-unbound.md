@@ -1,7 +1,7 @@
 ---
 title: DNS 原理与 unbound 实战：解析流程、记录类型与缓存控制
 description: 从 hosts 与 resolv.conf 到递归迭代讲清 DNS 查询链路，用 dig 实战各类记录，再以 unbound 部署 local-zone、auth-zone、forward-zone 与缓存管理，并拆解 SERVFAIL、NXDOMAIN、NOERROR 空答等典型故障的成因与定位。目标是让读者能独立搭建一台可对外递归、对内权威的缓存域名服务器，而不必依赖公共解析服务。
-tags: [Linux, DNS, 网络服务]
+tags: [网络]
 pubDate: 2026-09-21
 ---
 

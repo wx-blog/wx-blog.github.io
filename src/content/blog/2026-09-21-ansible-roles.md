@@ -2,7 +2,7 @@
 title: Ansible Role 实战：目录结构、变量优先级与 handler
 description: Role 是把任务、变量、模板、handler 打包成可复用单元的方式。这篇从一个空 Role 骨架开始，逐个目录讲清职责，重点拆解 defaults 与 vars 的优先级差异、外部变量文件的加载，以及 notify 触发 handler 的时机。
 pubDate: 2026-09-21
-tags: [Ansible, 自动化运维, Role]
+tags: [Ansible]
 ---
 
 写完几个 playbook 之后一定会遇到这个问题：同一套"装 nginx + 配虚拟主机 + 起服务"的流程，在三个项目里各写了一遍。Role 就是为这件事存在的——把任务、变量、模板、handler 打包成一个可复用的单元。

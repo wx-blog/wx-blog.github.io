@@ -71,11 +71,11 @@ const posts = await getPublishedPosts();
             手写的样式，能删的都删了。
           </h2>
           <div class="prose" data-reveal style="--d:.1s">
-            <p>用 <a href="https://astro.build" rel="noopener">Astro</a> 构建，纯静态输出。没有 UI 框架，样式全部手写，页面上唯一的一段脚本负责深色模式切换和滚动入场。</p>
+            <p>用 <a href="https://astro.build" rel="noopener">Astro</a> 构建，纯静态输出。没有 UI 框架，样式全部手写，页面上的几段小脚本只负责滚动入场、代码复制和站内搜索。</p>
             <p>几个自己比较满意的细节：</p>
             <ul>
               <li><strong>中文字体做了子集化</strong>——思源黑体全字库 17MB，按站点实际用字裁剪后只剩 300 多 KB，首屏不用等字体</li>
-              <li><strong>封面图是代码算出来的</strong>——按文章 ID 生成，零素材、零版权，风格天然统一</li>
+              <li><strong>分享图是构建期算出来的</strong>——每篇文章一张 1200×630，标题、日期、标签都不一样，不用手工做图</li>
               <li><strong>字体全部本地托管</strong>，不依赖任何第三方 CDN，国内访问不会卡在字体上</li>
             </ul>
           </div>

@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 构建期要用 sharp 把文章标题渲染成 PNG 分享图（src/pages/og/[id].png.ts）。
+      # ubuntu-latest 默认没有中文字体，缺字会变成方框。
+      - name: Install CJK fonts
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+
       - name: Build with Astro
         run: npm run build
 

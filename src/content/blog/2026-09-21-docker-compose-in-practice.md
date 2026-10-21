@@ -2,7 +2,7 @@
 title: Docker Compose 多容器编排实战：用一份 YAML 拉起 Web+Redis
 description: 以一个 Redis 计数应用为例，讲清 Docker Compose 的 YAML 结构、services/networks/volumes 三大顶层字段，以及 up/down/ps/scale 等常用命令。读完能用一份配置文件管理多个互相通信的容器，并避开端口冲突这类典型报错。
 pubDate: 2026-09-21
-tags: [Docker, Compose, 容器编排]
+tags: [Docker]
 ---
 
 单个容器用 `docker run` 还能应付，但真实应用往往是"前端 + 后端 + 数据库"好几个容器一起跑。Docker Compose 用一个 YAML 文件声明这些容器怎么组合、怎么连网、数据存哪，再一条 `docker compose up` 全部拉起。这篇用一个 Redis 计数小应用（counter-app）把流程走通。

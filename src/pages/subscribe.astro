@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../consts';
+
+const feedUrl = new URL('rss.xml', Astro.site ?? SITE.url).href;
+---
+
+<BaseLayout
+  title="订阅"
+  description="用 RSS 阅读器订阅这个博客，有新文章时自动收到，不需要注册账号。"
+>
+  <div class="wrap">
+    <header class="page-hero">
+      <p class="page-hero__eyebrow" data-reveal>SUBSCRIBE</p>
+      <h1 class="page-hero__title" data-reveal style="--d:.05s">
+        把更新放进你的阅读器。
+      </h1>
+      <p class="page-hero__lede" data-reveal style="--d:.12s">
+        RSS 是一份由站点维护的更新列表。把它交给阅读器，之后有新文章会自动出现，不用反复回来刷新，也不用留下邮箱。
+      </p>
+    </header>
+
+    <section class="section" data-reveal>
+      <p class="doc-grid__label" style="margin-bottom:0.8rem">订阅地址</p>
+      <div class="feed-box">
+        <code class="feed-box__url">{feedUrl}</code>
+        <button class="copy-btn" type="button" data-copy-feed={feedUrl}>复制</button>
+      </div>
+      <p class="search-hint">
+        把上面的地址粘贴到任意 RSS 阅读器的「添加订阅」里。阅读器会自己检查更新。
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>为什么直接打开是一堆代码</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">
+            那不是坏了，是给阅读器看的。
+          </h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <p>
+              浏览器打开 <a href="/rss.xml">{feedUrl.replace(/^https?:\/\//, '')}</a>
+              时看到的 XML，就是 RSS 的原始格式。它本来不打算给人直接阅读，
+              而是让阅读器解析出标题、摘要和链接。
+            </p>
+            <p>
+              所以正确的用法是：复制地址，交给阅读器；而不是在浏览器里读它。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="doc-grid">
+        <p class="doc-grid__label" data-reveal>用哪个阅读器</p>
+        <div class="doc-grid__body">
+          <h2 class="section__title" data-reveal style="--d:.05s">挑一个顺手的就行</h2>
+          <div class="prose" data-reveal style="--d:.1s">
+            <p>下面几个都支持直接粘贴订阅地址，注册与否取决于服务本身：</p>
+          </div>
+
+          <ul class="reader-list" data-reveal style="--d:.15s">
+            <li>
+              <a href="https://www.inoreader.com/" rel="noopener">
+                <strong>Inoreader</strong>
+                <span>网页 / iOS / Android，免费版够用</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://feedly.com/" rel="noopener">
+                <strong>Feedly</strong>
+                <span>网页 / 移动端，界面成熟</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://netnewswire.com/" rel="noopener">
+                <strong>NetNewsWire</strong>
+                <span>macOS / iOS，开源免费</span>
+              </a>
+            </li>
+            <li>
+              <a href="https://hyliu.me/fluent-reader/" rel="noopener">
+                <strong>Fluent Reader</strong>
+                <span>Windows / macOS / Linux，开源</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="outro">
+      <div class="outro__box glass" data-reveal>
+        <h2 class="outro__title">已经订阅了？</h2>
+        <p class="outro__text">
+          可以从「从这里开始」按依赖顺序读，也可以直接翻全部文章。有问题欢迎在 GitHub 上找我。
+        </p>
+        <div class="pill-group">
+          <a class="btn btn--solid" href="/start/">从这里开始 →</a>
+          <a class="btn btn--ghost" href="/blog/">全部文章</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

@@ -2,7 +2,7 @@
 title: 怎么量化 K8s 的「自愈能力」——毕设开题的一点想法
 description: 自愈是 Kubernetes 最被称道的特性之一，但「自愈得好不好」很少有人量化。这篇记录我打算怎么用 Chaos Mesh 把它变成可测量的指标。
 pubDate: 2026-09-10
-tags: [Kubernetes, Chaos Mesh, 毕设]
+tags: [Kubernetes]
 ---
 
 「Kubernetes 有自愈能力」几乎是所有教程的默认前提，但往下追问一层就不好回答了：

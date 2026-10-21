@@ -1,7 +1,7 @@
 ---
 title: IPv6 深潜：ICMPv6、NDP 与 SLAAC 地址自动配置
 description: 讲清 IPv6 下 ICMPv6 与邻居发现 NDP 的替代角色、SLAAC 无状态地址生成的完整流程与 M/O/A 标志位组合，用 radvd 与 kea-dhcp6 实操，帮助在纯 IPv6 或双栈环境把地址规划、无状态配置与排错一次讲透。
-tags: [Linux, IPv6, 网络]
+tags: [网络]
 pubDate: 2026-09-21
 ---
 

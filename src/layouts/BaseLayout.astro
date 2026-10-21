@@ -12,15 +12,51 @@ interface Props {
   description?: string;
   /** og:type */
   type?: 'website' | 'article';
+  /** 自定义分享图，传站内路径，如 /og/xxx.png；不传则用默认图 */
+  image?: string;
+  /** 不参与搜索引擎索引（404 等） */
+  noindex?: boolean;
+  /** 页面级结构化数据；不传则输出站点级 WebSite */
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
-const { title, description = SITE.description, type = 'website' } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  type = 'website',
+  image,
+  noindex = false,
+  jsonLd,
+} = Astro.props;
 
 const pageTitle = title ? `${title} · ${SITE.title}` : `${SITE.title} · ${SITE.tagline}`;
 const siteUrl = Astro.site?.href ?? SITE.url;
 const canonical = new URL(Astro.url.pathname, siteUrl).href;
 const rssHref = new URL('rss.xml', siteUrl).href;
-const ogImage = new URL('og-default.png', siteUrl).href;
+const ogImage = new URL(image ?? 'og-default.png', siteUrl).href;
+
+/* 站点级结构化数据：告诉搜索引擎「这是一个网站」，
+   并声明站内搜索的入口模板（对应 /search/?q=...）。 */
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: SITE.title,
+  alternateName: SITE.author,
+  url: siteUrl,
+  description: SITE.description,
+  inLanguage: SITE.lang,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${new URL('search/', siteUrl).href}?q={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+/* JSON 里的 `<` 一律转成 \u003c，避免正文里出现 </script> 把标签提前闭合 */
+const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003c');
 ---
 
 <!doctype html>
@@ -48,6 +84,7 @@ const ogImage = new URL('og-default.png', siteUrl).href;
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href={rssHref} />
@@ -70,9 +107,12 @@ const ogImage = new URL('og-default.png', siteUrl).href;
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={SITE.title} />
     <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content={pageTitle} />
     <meta property="og:locale" content="zh_CN" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={ogImage} />
+
+    <script type="application/ld+json" set:html={jsonLdText} />
 
     <ClientRouter />
 
@@ -142,6 +182,244 @@ const ogImage = new URL('og-default.png', siteUrl).href;
     </main>
 
     <Footer />
+
+    {/* 订阅页的复制按钮 + 站内搜索。
+        放在 BaseLayout 里而不是各自页面内：站点用了 ClientRouter，
+        从页脚点进 /subscribe/ 或 /search/ 时页面脚本不一定会重新执行，
+        但这里的监听挂在 document 与 astro:page-load 上，换页后依然有效。 */}
+    <script is:inline>
+      (() => {
+        if (window.__siteTools) return;
+        window.__siteTools = true;
+
+        /* ---------- 订阅页：复制订阅地址 ---------- */
+        document.addEventListener('click', async (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          const btn = target?.closest('[data-copy-feed]');
+          if (!btn) return;
+
+          const url = btn.getAttribute('data-copy-feed') || '';
+          const original = btn.textContent;
+          try {
+            await navigator.clipboard.writeText(url);
+            btn.textContent = '已复制';
+            btn.dataset.copied = 'true';
+          } catch {
+            // 非安全上下文或拒绝授权：选中地址，让用户自己复制
+            const code = btn.parentElement?.querySelector('.feed-box__url');
+            if (code) {
+              const range = document.createRange();
+              range.selectNodeContents(code);
+              const selection = window.getSelection();
+              selection?.removeAllRanges();
+              selection?.addRange(range);
+            }
+            btn.textContent = '请手动复制';
+          }
+
+          setTimeout(() => {
+            btn.textContent = original;
+            delete btn.dataset.copied;
+          }, 1800);
+        });
+
+        /* ---------- 站内搜索 ---------- */
+        let docs = null;
+        let loading = null;
+
+        const loadIndex = async () => {
+          if (docs) return docs;
+          if (!loading) {
+            loading = fetch('/search-index.json')
+              .then((res) => {
+                if (!res.ok) throw new Error(String(res.status));
+                return res.json();
+              })
+              .then((data) => {
+                docs = data;
+                return data;
+              })
+              .catch((err) => {
+                loading = null;
+                throw err;
+              });
+          }
+          return loading;
+        };
+
+        const esc = (value) =>
+          String(value).replace(
+            /[&<>"']/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+          );
+
+        /* 先按纯文本切段、再分别转义，避免把插入的 <mark> 标签二次转义，
+           也避免关键词命中 HTML 实体（如 amp）时标错位置。 */
+        const mark = (text, terms) => {
+          const source = String(text || '');
+          const parts = terms
+            .filter(Boolean)
+            .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .sort((a, b) => b.length - a.length);
+          if (!source) return '';
+          if (!parts.length) return esc(source);
+
+          const re = new RegExp(parts.join('|'), 'gi');
+          let out = '';
+          let last = 0;
+          let m;
+          while ((m = re.exec(source)) !== null) {
+            out += esc(source.slice(last, m.index));
+            out += '<mark>' + esc(m[0]) + '</mark>';
+            last = m.index + m[0].length;
+            if (m.index === re.lastIndex) re.lastIndex += 1;
+          }
+          return out + esc(source.slice(last));
+        };
+
+        const render = (items, terms) => {
+          const list = document.getElementById('search-results');
+          const status = document.getElementById('search-status');
+          if (!list || !status) return;
+
+          if (!terms.length) {
+            list.innerHTML = '';
+            status.textContent = '';
+            return;
+          }
+          if (!items.length) {
+            list.innerHTML = '';
+            status.textContent = `没有找到与「${terms.join(' ')}」匹配的文章。`;
+            return;
+          }
+
+          status.textContent = `找到 ${items.length} 篇文章，按相关度排序。`;
+          list.innerHTML = items
+            .map(
+              (doc) => `
+              <li class="search-result">
+                <a href="${esc(doc.url)}">
+                  <div class="search-result__title">${mark(doc.title, terms)}</div>
+                  <p class="search-result__desc">${mark(doc.description, terms)}</p>
+                  <p class="search-result__meta">${esc(doc.date)} · ${esc(doc.tags.join(' / '))} · 约 ${doc.minutes} 分钟</p>
+                </a>
+              </li>`,
+            )
+            .join('');
+        };
+
+        const runSearch = (query) => {
+          const raw = query.trim().split(/\s+/).filter(Boolean).slice(0, 8);
+          if (!raw.length) {
+            render([], []);
+            return;
+          }
+
+          const terms = raw.map((t) => t.toLowerCase());
+          const scored = [];
+
+          for (const doc of docs) {
+            const title = doc.title.toLowerCase();
+            const desc = (doc.description || '').toLowerCase();
+            const tags = doc.tags.join(' ').toLowerCase();
+            const body = doc.text.toLowerCase();
+
+            let score = 0;
+            let hitAll = true;
+
+            for (const term of terms) {
+              let s = 0;
+              if (title.includes(term)) s += 14;
+              if (tags.includes(term)) s += 8;
+              if (desc.includes(term)) s += 5;
+              if (body.includes(term)) s += 2;
+              if (!s) {
+                hitAll = false;
+                break;
+              }
+              score += s;
+            }
+
+            if (hitAll) scored.push({ doc, score });
+          }
+
+          scored.sort((a, b) => b.score - a.score);
+          render(
+            scored.slice(0, 30).map((item) => item.doc),
+            raw,
+          );
+        };
+
+        const update = async () => {
+          const input = document.getElementById('search-input');
+          const status = document.getElementById('search-status');
+          if (!input) return;
+
+          const q = input.value.trim();
+          const url = new URL(location.href);
+          if (q) url.searchParams.set('q', q);
+          else url.searchParams.delete('q');
+          history.replaceState(null, '', url);
+
+          if (!q) {
+            render([], []);
+            return;
+          }
+
+          if (status) status.textContent = '搜索中…';
+          try {
+            await loadIndex();
+            runSearch(q);
+          } catch {
+            if (status) status.textContent = '搜索索引加载失败，请刷新页面再试。';
+          }
+        };
+
+        const initSearch = () => {
+          const input = document.getElementById('search-input');
+          if (!input || input.dataset.bound === '1') return;
+          input.dataset.bound = '1';
+
+          let timer = 0;
+          input.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(update, 120);
+          });
+          input.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              input.value = '';
+              update();
+            }
+          });
+
+          const initial = new URL(location.href).searchParams.get('q');
+          if (initial) {
+            input.value = initial;
+            update();
+          }
+        };
+
+        // 搜索页按 / 聚焦输入框（其他页面没有搜索框，按了不做事）
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+          const active = document.activeElement;
+          if (
+            active &&
+            (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+          ) {
+            return;
+          }
+          const input = document.getElementById('search-input');
+          if (!input) return;
+          event.preventDefault();
+          input.focus();
+        });
+
+        document.addEventListener('astro:page-load', initSearch);
+        if (document.readyState !== 'loading') initSearch();
+      })();
+    </script>
 
     {/* 页头细线 / 滚动进入 / 目录高亮。挂在 window 上，避免视图过渡时重复绑定。 */}
     <script is:inline>

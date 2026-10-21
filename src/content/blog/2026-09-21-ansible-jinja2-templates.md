@@ -2,7 +2,7 @@
 title: Jinja2 模板语法精讲：变量、过滤器、控制流与模板继承
 description: Ansible 的模板能力完全来自 Jinja2。这篇把模板的三种分隔符、变量访问的两种写法、过滤器与测试的用法、空白控制、转义技巧讲清楚，最后讲透模板继承里的 block 与 super——这几条撑起了日常写模板的九成场景。
 pubDate: 2026-09-21
-tags: [Ansible, Jinja2, 模板]
+tags: [Ansible]
 ---
 
 只要开始写 Ansible 的 `template` 模块，就绕不开 Jinja2。它决定了模板里能写什么、怎么写、以及渲染出来长什么样。

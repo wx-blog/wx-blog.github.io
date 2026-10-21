@@ -2,7 +2,7 @@
 title: systemd 服务管理与 SSH 加固实战
 description: 讲清 systemd 服务管理（单元、开机自启、target）与 SSH 安全加固（密钥登录、禁用 root 密码、配置文件校验），读完能独立管理系统服务并锁好远程入口。
 pubDate: 2026-09-21
-tags: [Linux, systemd, SSH]
+tags: [Linux, 安全, RHCSA]
 ---
 
 systemd 是现代 RHEL 系发行版的初始化系统（PID 1），取代老的 SysV init，最大特点是并行启动、按需激活和用 cgroup 管进程。SSH 则是服务器远程管理的入口，也是被攻击最频繁的服务。这两件事是运维的基本功：前者让你"管得住服务"，后者让你"进得来又不被攻破"。

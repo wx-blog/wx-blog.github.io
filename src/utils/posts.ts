@@ -2,10 +2,26 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 
 export type Post = CollectionEntry<'blog'>;
 
-/** 取全部已发布文章，按时间倒序 */
+/**
+ * 文章的完整发布时间（毫秒）。
+ *
+ * `pubDate` 只到天，同日多篇会完全相等；`pubTime`（可选）补上时分。
+ * 两者合成一个时间戳，排序才真正可用。
+ */
+export function postTimestamp(post: Post): number {
+  const base = post.data.pubDate.valueOf();
+  const time = post.data.pubTime;
+  if (!time) return base;
+  const [h, m] = time.split(':').map(Number);
+  return base + (h * 60 + m) * 60_000;
+}
+
+/** 取全部已发布文章，按发布时间倒序（同时间再按 id 倒序，保证结果稳定） */
 export async function getPublishedPosts(): Promise<Post[]> {
   const posts = await getCollection('blog', ({ data }) => !data.draft);
-  return posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+  return posts.sort(
+    (a, b) => postTimestamp(b) - postTimestamp(a) || b.id.localeCompare(a.id),
+  );
 }
 
 /** 文章永久链接 */
@@ -59,22 +75,27 @@ export function readingTime(body = ''): number {
 }
 
 /**
- * 每篇文章的稳定技术编号，用在封面角标与文章页元信息里。
+ * 卡片摘要：在标点处收尾，而不是让 CSS 从字中间切一刀。
  *
- * FNV-1a 取哈希前 6 位十六进制——和 Cover.astro 找配色用的是同一套哈希思路，
- * 所以同一篇文章的编号和封面永远对得上；增删文章、改标题都不会让编号串位。
+ * 中文没有空格，`line-clamp` 截断会停在任意一个字上（「…插件的」然后省略），
+ * 读起来像断气。这里先在预算长度内找句末标点，退而求其次找逗号，
+ * 让省略号落在语义停顿处。找不到合适位置才硬截。
  */
-export function postCode(id: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
+export function cardExcerpt(text = '', max = 76): string {
+  const s = text.trim();
+  if (s.length <= max) return s;
+
+  const head = s.slice(0, max);
+  let sentenceEnd = -1;
+  for (const p of ['。', '！', '？', '；']) {
+    sentenceEnd = Math.max(sentenceEnd, head.lastIndexOf(p));
   }
-  return (h >>> 0)
-    .toString(16)
-    .toUpperCase()
-    .padStart(8, '0')
-    .slice(0, 6);
+  if (sentenceEnd >= max * 0.55) return head.slice(0, sentenceEnd + 1);
+
+  const comma = Math.max(head.lastIndexOf('，'), head.lastIndexOf(','));
+  if (comma >= max * 0.55) return `${head.slice(0, comma)}…`;
+
+  return `${head.replace(/[，、,;；\s]+$/, '')}…`;
 }
 
 /** 标签 -> 篇数，按篇数倒序 */

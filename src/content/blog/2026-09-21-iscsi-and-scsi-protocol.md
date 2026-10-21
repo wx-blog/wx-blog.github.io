@@ -1,7 +1,7 @@
 ---
 title: iSCSI 从 SCSI 协议到远程块设备挂载
 description: 从 SCSI 命令集与传输解耦讲起，理清 Initiator/Target/LUN 与 iSCSI PDU，再用 targetcli 配 Target、iscsiadm 配 Initiator，把远端磁盘分区格式化并持久挂载，并覆盖门户不可达、IQN 认证失败、开机挂载顺序错等典型故障的定位。
-tags: [存储, iSCSI, 网络存储]
+tags: [存储]
 pubDate: 2026-09-21
 ---
 

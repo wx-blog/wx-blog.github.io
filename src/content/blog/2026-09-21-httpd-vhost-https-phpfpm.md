@@ -1,7 +1,7 @@
 ---
 title: Web 服务实战：虚拟主机、HTTPS 证书链与 PHP-FPM 集成
 description: 用 httpd 在一台服务器托管多个站点（基于名称或 IP:端口），部署带中间证书的 HTTPS 认证链，并用 PHP-FPM 以 FastCGI 方式运行 PHP，覆盖怎么做加为什么加出错怎么办三层，并给出证书链不完整、PHP 不解析等高频故障的定位思路。
-tags: [Linux, httpd, HTTPS]
+tags: [网络, Linux]
 pubDate: 2026-09-21
 ---
 

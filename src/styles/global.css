@@ -1238,6 +1238,9 @@ a.tag:hover {
 
 .prose {
   max-width: var(--measure);
+  /* Grid 子项默认 min-width:auto，会被最长的一行代码撑开；
+     不设 0 的话窄屏整页都会被代码块拖宽（pre 自己的 overflow-x 也就失效了）。 */
+  min-width: 0;
   font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
   line-height: 1.8;
 }
@@ -1494,6 +1497,11 @@ a.tag:hover {
 .post-body {
   display: grid;
   gap: clamp(2rem, 1rem + 4vw, 4.5rem);
+}
+
+/* 正文和目录都不能把网格列撑破 */
+.post-body > * {
+  min-width: 0;
 }
 
 @media (min-width: 68rem) {
@@ -3802,3 +3810,417 @@ a.tag:hover {
   }
 }
 
+
+/* ==========================================================================
+   26. 学习路径（/start/）
+   ========================================================================== */
+
+.path-list {
+  display: grid;
+  gap: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+}
+
+.path {
+  padding: clamp(1.25rem, 1rem + 1.2vw, 2rem);
+  border-radius: 1.2rem;
+}
+
+.path__head {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(0.85rem, 0.6rem + 0.8vw, 1.25rem);
+}
+
+/* 序号是路径内部唯一允许使用强调色的地方：
+   它承担"这是第几条"的信息，不是装饰。 */
+.path__index {
+  margin: 0;
+  padding-top: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  flex: none;
+}
+
+.path__intro {
+  min-width: 0;
+}
+
+.path__title {
+  margin: 0;
+  font-size: clamp(1.2rem, 1.05rem + 0.55vw, 1.55rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.022em;
+}
+
+.path__desc {
+  margin: 0.45rem 0 0;
+  max-width: 60ch;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.path__meta {
+  margin: 0.55rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}
+
+/* 宽屏两列、窄屏一列：条目一多，单列会把路径拉得很长 */
+.path__steps {
+  list-style: none;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.05rem;
+  /* 19rem 时 1440 宽会挤成三列，中文标题被压成两行、时间贴到边缘。
+     24rem 让桌面稳定落在两列，每篇标题都有舒展的空间。
+     外加 min(100%, …)：容器比 24rem 还窄时（手机），列宽跟着容器缩，
+     否则 minmax 的下限会把整页撑出横向滚动。 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+}
+
+.path__step a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.6rem;
+  color: var(--text);
+  transition:
+    background-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.path__step a:hover {
+  background: var(--bg-inset);
+  color: var(--accent-hover);
+}
+
+.path__num {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.path__name {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.path__time {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.path-foot {
+  margin: clamp(1.75rem, 1.4rem + 1.5vw, 2.5rem) 0 clamp(2rem, 1.5rem + 2vw, 3rem);
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+/* ==========================================================================
+   27. 订阅页（/subscribe/）
+   ========================================================================== */
+
+.feed-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 0.8rem 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--bg-subtle);
+}
+
+.feed-box__url {
+  flex: 1 1 18rem;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.feed-box__url::-webkit-scrollbar {
+  display: none;
+}
+
+.copy-btn {
+  flex: none;
+  padding: 0.42rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-micro);
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.copy-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.copy-btn[data-copied='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.reader-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* .doc-grid__body 设了 justify-items:start，子项默认按 max-content 收缩；
+     不显式撑开的话整个列表只有第一列的宽度。 */
+  width: 100%;
+  justify-self: stretch;
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.reader-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  transition:
+    border-color 0.2s var(--ease),
+    background-color 0.2s var(--ease);
+}
+
+.reader-list a:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-subtle);
+}
+
+.reader-list strong {
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
+.reader-list span {
+  color: var(--text-faint);
+  font-size: var(--fs-micro);
+}
+
+/* ==========================================================================
+   28. 搜索页（/search/）
+   ========================================================================== */
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--bg-subtle);
+  transition: border-color 0.2s var(--ease);
+}
+
+.search-box:focus-within {
+  border-color: var(--border-strong);
+}
+
+.search-box svg {
+  flex: none;
+  color: var(--text-faint);
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.search-box input::placeholder {
+  color: var(--text-faint);
+}
+
+.search-hint {
+  margin: 0.8rem 0 0;
+  font-size: var(--fs-micro);
+  color: var(--text-faint);
+}
+
+.search-hint kbd {
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.search-results {
+  list-style: none;
+  margin: clamp(1.5rem, 1.2rem + 1vw, 2.2rem) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.search-result a {
+  display: block;
+  padding: 1rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  transition:
+    border-color 0.2s var(--ease),
+    background-color 0.2s var(--ease);
+}
+
+.search-result a:hover {
+  border-color: var(--border);
+  background: var(--bg-subtle);
+}
+
+.search-result__title {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.search-result__desc {
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.search-result__meta {
+  margin: 0.45rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.search-result mark {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.search-empty {
+  margin: 2rem 0 0;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   29. 404
+   ========================================================================== */
+
+.notfound {
+  display: grid;
+  place-items: center;
+  /* 用内容自身的高度撑开，而不是 100svh 减去页头：
+     后者没算页脚，窄屏上会硬生生多出一条滚动条。 */
+  min-height: clamp(24rem, 62svh, 38rem);
+  padding: clamp(3rem, 2rem + 6vw, 6rem) 0;
+  text-align: center;
+}
+
+.notfound__code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(3.5rem, 2rem + 8vw, 7rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  opacity: 0.16;
+}
+
+.notfound__title {
+  margin: clamp(1rem, 0.8rem + 1vw, 1.5rem) 0 0;
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.notfound__text {
+  margin: 0.8rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
+
+.notfound__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1.6rem;
+}
+
+/* 首屏底部那行"最新一篇"：给折叠线以上一个真正的入口 */
+.hero__latest {
+  margin: clamp(1.4rem, 1.1rem + 1vw, 2rem) 0 0;
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+.hero__latest a {
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease);
+}
+
+.hero__latest a:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+}
+
+/* 首屏入场：接在数据条之后、方向卡之前 */
+.hero__latest {
+  opacity: 1;
+  transition:
+    opacity 0.8s var(--ease),
+    transform 0.9s var(--ease);
+}
+
+.is-entering .hero__latest {
+  opacity: 0;
+  transform: translateY(14px);
+  transition-delay: 0.38s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-entering .hero__latest {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

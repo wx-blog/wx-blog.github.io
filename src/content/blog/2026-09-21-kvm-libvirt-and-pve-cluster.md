@@ -2,7 +2,7 @@
 title: 从 libvirt 到 Proxmox VE：KVM 虚拟化与 PVE 三节点集群
 description: 前半段用 libvirt 工具链在单机上把 KVM 玩明白——存储池、XML 定义虚拟机、快照与克隆；后半段用 Proxmox VE 把三台节点组成集群并跑起 Ceph。两者底层都是 KVM，区别在管理平面，适合脚本化运维还是 Web 集中管理。
 pubDate: 2026-09-21
-tags: [虚拟化, KVM, Proxmox]
+tags: [虚拟化]
 ---
 
 这篇把"单机 KVM 虚拟化"和"生产级 PVE 集群"串起来讲：前半段用 libvirt 工具链在单台 Rocky Linux 10 上把 KVM 玩明白（存储池、XML 定义、快照克隆），后半段用 Proxmox VE（PVE）9.2.2 把三台节点组成高可用集群并跑起 Ceph。两者底层都是 KVM，区别在管理平面——libvirt 适合脚本化运维，PVE 适合 Web 集中管理。

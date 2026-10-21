@@ -1,7 +1,7 @@
 ---
 title: SELinux 策略管理：从运行模式到端口标签与审计
 description: 讲清 SELinux 三种运行模式、安全上下文、文件与端口标签、布尔值的实战配置，并用 audit2allow 把拒绝日志闭环成策略模块，覆盖怎么改加为什么加出错怎么办三层，适合强制模式下既保安全又不误伤业务。
-tags: [Linux, SELinux, 安全]
+tags: [Linux, 安全]
 pubDate: 2026-09-21
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: 企业文件共享：Samba 多用户挂载与 NFS 结合 Kerberos
 description: 对比 SMB/CIFS 与 NFS 的适用边界，演示 Samba 多用户挂载 multiuser 加 cifscreds 与 autofs 自动挂载，并用 Kerberos 为 NFS 提供强身份认证，给出共享权限错位、票据过期、上下文标签不符等高频问题的定位方法。
-tags: [Linux, NFS, Samba]
+tags: [存储, Linux]
 pubDate: 2026-09-21
 ---
 

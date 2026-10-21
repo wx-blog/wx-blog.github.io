@@ -2,7 +2,7 @@
 title: Ceph Dashboard 多用户与 RBAC 权限体系
 description: Dashboard 默认只有一个 admin 超级用户，共用密码既不安全也不好审计。这篇讲清 RBAC 的三层模型——用户、角色、作用域加权限，并给出创建只读监控用户、块存储管理员等实操命令和上手就会遇到的报错。
 pubDate: 2026-09-21
-tags: [Ceph, Dashboard, 权限]
+tags: [Ceph]
 ---
 
 Ceph Dashboard 默认只有一个 `admin` 超级用户，所有人共用同一套密码既不安全也不好审计。Dashboard 内置了完整的 RBAC（基于角色的访问控制，Role-Based Access Control）：建不同权限的用户、把用户归到角色、角色由"作用域 + 权限"组成。这篇把多用户与 RBAC 的玩法讲透，重点在命令和那些一上手就踩的报错。

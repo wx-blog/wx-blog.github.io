@@ -50,17 +50,18 @@ npm run fonts    # 手动跑；npm run build 会自动先跑
 拉丁字形单独用 Inter 的 `latin` 分片（约 47KB），两个文件都在本地托管，
 不依赖任何第三方字体 CDN。
 
-### 2. 封面图是代码算出来的
+### 2. 分享图是构建期算出来的
 
-`src/components/Cover.astro`。按文章 ID 做 FNV-1a 哈希，从 **6 套配色 × 6 种构图**
-里确定性地选一套，输出内联 SVG。
+`src/utils/og.ts` 定义 SVG 模板，`src/pages/og/[id].png.ts` 在构建时为每篇文章
+生成一张 1200×630 的 `og:image`，标题、日期、标签都来自 frontmatter。
 
-- 同一篇文章永远得到同一张图，文章增删、顺序变化都不会让封面跳变
-- 零素材、零版权、零额外请求，构建时瞬时生成
-- 想调色板就改 `Cover.astro` 里的 `INKS`；想调构图就改下面的 `variant` 分支
+- 35 篇文章有 35 张不同的分享图，不再共用一张默认图
+- 零素材、零版权，改标题后重新构建即可自动更新
+- 标题按字符宽度自己断行，英文单词不会被拦腰截断
+- 想调配色就改 `og.ts` 里的渐变与强调色
 
-**画布是 1200 单位宽，而封面在页面上通常只有 400px 左右**——所以描边要按
-`3~5` 这个量级给，写 `1.5` 会缩成 0.5px，等于看不见。
+> 构建机需要中文字体：Windows 本地用微软雅黑，GitHub Actions 上由
+> `deploy.yml` 安装 `fonts-noto-cjk`。缺字时分享图会变成方框。
 
 ### 3. 中文折行不会留下多余空格
 
@@ -93,28 +94,34 @@ Markdown 里段落内的换行会被当成空格。中文段落一旦按行折�
 │   │   └── fonts.css           # @font-face，指向 public/fonts 下的子集
 │   ├── layouts/BaseLayout.astro
 │   ├── components/
-│   │   ├── Cover.astro         # ⭐ 程序化封面
-│   │   ├── PostCard.astro      # 文章卡片
+│   │   ├── PostCard.astro      # 文章卡片（整卡毛玻璃）
 │   │   ├── PostList.astro      # 卡片网格，首页/归档/标签页共用
 │   │   ├── Header.astro
 │   │   ├── Footer.astro
-│   │   └── ThemeToggle.astro
-│   ├── utils/posts.ts          # 取文章、排序、标签聚合、阅读时长
+│   │   └── Backdrop.astro      # 背景光斑
+│   ├── utils/
+│   │   ├── posts.ts            # 取文章、排序、标签聚合、阅读时长
+│   │   └── og.ts               # 分享图 SVG 模板
 │   └── pages/
 │       ├── index.astro              # /
+│       ├── start.astro              # /start/  按依赖排的学习路径
+│       ├── search.astro             # /search/ 站内搜索
+│       ├── subscribe.astro          # /subscribe/ 订阅说明
 │       ├── about.astro              # /about/
+│       ├── 404.astro
 │       ├── rss.xml.ts               # /rss.xml
+│       ├── search-index.json.ts     # 搜索索引（构建期生成）
+│       ├── og/[id].png.ts           # 每篇文章的分享图
+│       ├── og-default.png.ts        # 站点默认分享图
 │       ├── blog/index.astro         # /blog/  全部文章（按年分组）
 │       ├── blog/[...id].astro       # /blog/<文件名>/  带右侧目录
 │       ├── tags/index.astro         # /tags/
 │       └── tags/[tag].astro         # /tags/<标签>/
 ├── scripts/
 │   ├── subset-fonts.mjs        # 中文字体子集化
-│   ├── make-og.py              # 生成分享图（一次性，产物已提交）
 │   └── new-post.mjs            # 新建文章脚手架
 ├── public/
 │   ├── fonts/                  # 字体子集产物（gitignore，构建时生成）
-│   ├── og-default.png          # 社交分享图 1200×630
 │   └── favicon.svg
 └── .github/workflows/deploy.yml
 ```
@@ -135,11 +142,16 @@ npm run new -- "文章标题"
 | `title` | ✅ | 文章标题 |
 | `description` | | 摘要，列表页、SEO、RSS 都会用 |
 | `pubDate` | ✅ | 支持 `2026-09-18` 或完整 ISO 时间 |
+| `pubTime` | | `HH:mm`。同一天发多篇时用它排出先后，否则只能按文件名兜底 |
 | `updatedDate` | | 有修订时填，文章页会多显示一行 |
-| `tags` | | 字符串数组，建议不超过 5 个 |
+| `tags` | | 字符串数组，**优先复用已有的 12 个标签**，别为每篇造新词 |
 | `draft` | | `true` 时不发布，默认 `false` |
 
 URL 就是文件名去掉 `.md`，所以文件名一旦定下来**尽量别改**，否则旧链接会失效。
+
+标签的用法是索引，不是分类。现在全站收敛到 Linux、存储、网络、安全、RHCSA、
+Ansible、Ceph、Docker、信创迁移、Kubernetes、建站、虚拟化这 12 个；
+一篇新文章先想「它属于哪几条已有的线」，实在放不进去再加新标签。
 
 ### 排版约定
 
@@ -307,26 +319,20 @@ GitHub Pages 就是那个能绑域名的地方。
 | --- | --- |
 | 站点名、导航、社交链接、描述 | `src/consts.ts` |
 | 配色、字号阶梯、间距、圆角 | `src/styles/global.css` 顶部的 `:root` |
-| 封面配色 / 构图 | `src/components/Cover.astro` 的 `INKS` 与 `variant` 分支 |
 | 代码高亮主题 | `astro.config.mjs` 的 `markdown.shikiConfig.themes` |
-| 分享图 | `python scripts/make-og.py`（需 Python + Pillow） |
+| 分享图配色 / 排版 | `src/utils/og.ts`（构建期自动生成，无需手动跑脚本） |
 | favicon | `public/favicon.svg` |
 
 ### 换成自己的内容
 
-站刚建好时带了三篇示例文章（`src/content/blog/` 下的三个 `.md`），是用来撑版式的骨架，
-**发之前记得删掉或改写**。换成自己的东西只需要动三个地方：
+站刚建好时的示例文章已经换成了真实笔记。要整体换成自己的内容，动这几个地方：
 
 | 想改什么 | 去哪里 |
 | --- | --- |
 | 站点名 / 副标题 / 作者 / 描述 | `src/consts.ts` |
-| 导航项、页脚外链 | `src/consts.ts` 的 `nav` 与 `social` |
+| 导航项、页脚链接 | `src/consts.ts` 的 `nav`、`footerLinks` 与 `social` |
 | 关于页全文 | `src/pages/about.astro` |
-
-### 待补
-
-- `src/consts.ts` 里的 GitHub 链接目前是 `https://github.com/` 占位，换成自己的主页
-- 三篇示例文章换成自己的真实笔记
+| 学习路径的顺序与说明 | `src/pages/start.astro` 的 `PATHS` |
 
 ## 许可
 

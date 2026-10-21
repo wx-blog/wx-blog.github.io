@@ -2,7 +2,7 @@
 title: RAID 各级别取舍与故障演练：从 RAID 0 到 RAID 5 热备重建
 description: 以 Rocky Linux 10 加软件 RAID（mdadm）为例，把 RAID 0/1/5/6/10 在容量、冗余、性能上的取舍讲清楚，并完整跑一遍 RAID 5 加热备盘的故障模拟与自动重建——这部分是运维真正用得上的。
 pubDate: 2026-09-21
-tags: [存储, RAID, 磁盘]
+tags: [存储]
 ---
 
 RAID（独立磁盘冗余阵列，Redundant Array of Independent Disks）是把多块物理盘组合成一个逻辑单元的技术，目标无非三个：用条带化提升吞吐、用镜像或奇偶校验做冗余、把小盘拼成大盘。这篇以 Rocky Linux 10 + 软件 RAID（mdadm）为例，把各级别的取舍讲清楚，并完整跑一遍 RAID 5 加热备盘的故障模拟与自动重建——这部分是运维真正用得上的。

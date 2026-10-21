@@ -1,10 +1,12 @@
 ---
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../consts';
 import {
   formatDate,
   getNeighbors,
   getPublishedPosts,
+  postTimestamp,
   postUrl,
   readingTime,
   tagUrl,
@@ -27,9 +29,56 @@ const minutes = readingTime(post.body);
 
 /* 目录只收二、三级标题：一级就是文章标题，再深一层会太碎 */
 const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+
+/* 结构化数据。日期用带时分的完整时间，避免同日多篇在搜索结果里
+   排序混乱；修改时间优先取 updatedDate。 */
+const siteUrl = Astro.site?.href ?? SITE.url;
+const postHref = new URL(postUrl(post.id), siteUrl).href;
+const imageHref = new URL(`og/${post.id}.png`, siteUrl).href;
+const publishedAt = new Date(postTimestamp(post)).toISOString();
+const modifiedAt = (post.data.updatedDate ?? post.data.pubDate).toISOString();
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.data.title,
+    description: post.data.description,
+    image: [imageHref],
+    datePublished: publishedAt,
+    dateModified: modifiedAt,
+    author: { '@type': 'Person', name: SITE.author, url: SITE.url },
+    publisher: { '@type': 'Person', name: SITE.author, url: SITE.url },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': postHref },
+    url: postHref,
+    inLanguage: SITE.lang,
+    keywords: post.data.tags.join(', '),
+    articleSection: post.data.tags[0],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '首页', item: siteUrl },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: '全部文章',
+        item: new URL('blog/', siteUrl).href,
+      },
+      { '@type': 'ListItem', position: 3, name: post.data.title, item: postHref },
+    ],
+  },
+];
 ---
 
-<BaseLayout title={post.data.title} description={post.data.description} type="article">
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  type="article"
+  image={`/og/${post.id}.png`}
+  jsonLd={jsonLd}
+>
   {/* 阅读进度条：纯 CSS scroll-driven 动画驱动，零 JS（见 global.css 28.5）。
       放在最外层是为了让 fixed 定位不受 post-body 的 grid 影响。 */}
   <div class="reading-progress" aria-hidden="true"></div>

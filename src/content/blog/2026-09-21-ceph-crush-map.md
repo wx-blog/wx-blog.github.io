@@ -2,7 +2,7 @@
 title: CRUSH 算法与 CRUSH Map 管理：把数据放到该去的地方
 description: CRUSH 让客户端自己算出数据该放在哪个 OSD，不需要中心服务器，集群扩缩容时只迁移必要数据。这篇讲清 CRUSH Map 的结构，完整跑通导出、反编译、编辑、注入四个步骤，并写自定义规则做跨主机故障域隔离与 SSD/HDD 性能分层。
 pubDate: 2026-09-21
-tags: [Ceph, CRUSH, 分布式存储]
+tags: [Ceph]
 ---
 
 CRUSH（Controlled Replication Under Scalable Hashing）是 Ceph 决定"object → PG → OSD"如何放置的算法。它的厉害之处在于**去中心化**：客户端用固定算法自己算出数据该放哪，不用查中心服务器，因此集群扩缩容时只迁移必要的数据。这篇讲 CRUSH Map 的结构、怎么导出/反编译/编辑/注入，以及怎么写自定义规则做故障域隔离和性能分层。
