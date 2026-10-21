@@ -67,38 +67,71 @@ function tokenize(text: string): string[] {
 
 const CLOSING = /^[。，、；：！？）》」』”’…,.;:!?)\]}%]$/;
 
+/**
+ * 按标点/空格切「词组」：中文没有词边界，逐字断行会得到「本地编 / 译」；
+ * 标点天然就是停顿点，把标点连同前面的字绑在一起，换行机会就落在这些地方。
+ * 例如「本地编译、交叉编译与鲲鹏专用编译器」会切成
+ * 「本地编译、」+「交叉编译与鲲鹏专用编译器」。
+ */
+function cluster(text: string): string[] {
+  const parts: string[] = [];
+  let buf = '';
+  for (const ch of text) {
+    if (/\s/.test(ch)) {
+      if (buf) {
+        parts.push(buf);
+        buf = '';
+      }
+      parts.push(' ');
+      continue;
+    }
+    buf += ch;
+    if (CLOSING.test(ch)) {
+      parts.push(buf);
+      buf = '';
+    }
+  }
+  if (buf) parts.push(buf);
+  return parts;
+}
+
 function wrap(text: string, size: number, maxWidth: number): string[] {
   const lines: string[] = [];
   let line = '';
   let width = 0;
 
-  for (const token of tokenize(text)) {
-    if (token === ' ') {
-      if (line && width + size * 0.3 <= maxWidth) {
-        line += ' ';
-        width += size * 0.3;
-      }
+  const append = (token: string) => {
+    line += token;
+    width += measure(token, size);
+  };
+  const flush = () => {
+    if (line.trim()) lines.push(line.trimEnd());
+    line = '';
+    width = 0;
+  };
+
+  for (const part of cluster(text)) {
+    if (part === ' ') {
+      if (line && width + size * 0.3 <= maxWidth) append(' ');
       continue;
     }
 
-    const tokenWidth = measure(token, size);
-    if (width + tokenWidth > maxWidth && line) {
-      // 行首不能是收尾标点：宁可让这一行略微超宽，也不让它孤零零落到下一行
-      if (CLOSING.test(token)) {
-        line += token;
-        width += tokenWidth;
-        continue;
+    const partWidth = measure(part, size);
+    if (width + partWidth > maxWidth && line) flush();
+
+    if (partWidth > maxWidth) {
+      // 一整段都没有标点、又比一行还长：只能退回逐字拆，保证不出画布
+      for (const token of tokenize(part)) {
+        const tokenWidth = measure(token, size);
+        if (width + tokenWidth > maxWidth && line) flush();
+        append(token);
       }
-      lines.push(line.trimEnd());
-      line = token;
-      width = tokenWidth;
     } else {
-      line += token;
-      width += tokenWidth;
+      append(part);
     }
   }
 
-  if (line.trim()) lines.push(line.trimEnd());
+  flush();
   return lines;
 }
 
@@ -114,16 +147,21 @@ function ellipsize(text: string, size: number, maxWidth: number): string {
 function fitTitle(title: string): { size: number; lines: string[] } {
   const initial = title.length <= 12 ? 82 : title.length <= 22 ? 72 : title.length <= 34 ? 62 : 54;
   const maxWidth = 1010;
+  // 为了两行而最多缩 8px；再小就宁可排三行，字号不能没有下限
+  const floor = Math.max(42, initial - 8);
+
+  let fallback: { size: number; lines: string[] } | null = null;
 
   for (let size = initial; size >= 42; size -= 4) {
     const lines = wrap(title, size, maxWidth);
-    if (lines.length <= 3) return { size, lines };
+    if (lines.length <= 2 && size >= floor) return { size, lines };
+    if (!fallback && lines.length <= 3) fallback = { size, lines };
   }
 
+  if (fallback) return fallback;
+
   const lines = wrap(title, 42, maxWidth).slice(0, 3);
-  if (lines.length === 3) {
-    lines[2] = ellipsize(lines[2], 42, maxWidth);
-  }
+  lines[2] = ellipsize(lines[2], 42, maxWidth);
   return { size: 42, lines };
 }
 
@@ -136,7 +174,7 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   const titleText = lines
     .map(
       (line, i) =>
-        `<text x="72" y="${firstBaseline + i * lineHeight}" font-family="${FONT}" font-size="${size}" font-weight="500" fill="#f7f4fd" letter-spacing="-1">${escapeXml(line)}</text>`,
+        `<text x="72" y="${firstBaseline + i * lineHeight}" font-family="${FONT}" font-size="${size}" font-weight="500" fill="#f5f3fb" letter-spacing="-1">${escapeXml(line)}</text>`,
     )
     .join('\n    ');
 
@@ -145,18 +183,23 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0e0a1a"/>
-      <stop offset="0.55" stop-color="#090612"/>
-      <stop offset="1" stop-color="#07050c"/>
+      <stop offset="0" stop-color="#07060e"/>
+      <stop offset="0.55" stop-color="#050509"/>
+      <stop offset="1" stop-color="#050509"/>
     </linearGradient>
-    <radialGradient id="glowA" cx="0.84" cy="0.12" r="0.62">
-      <stop offset="0" stop-color="#7c5cff" stop-opacity="0.26"/>
-      <stop offset="0.55" stop-color="#7c5cff" stop-opacity="0.07"/>
-      <stop offset="1" stop-color="#7c5cff" stop-opacity="0"/>
+    <linearGradient id="sparkMark" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7db4ff"/>
+      <stop offset="0.52" stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#f0a6ca"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0.84" cy="0.1" r="0.64">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.3"/>
+      <stop offset="0.55" stop-color="#8b5cf6" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="glowB" cx="0.08" cy="0.92" r="0.55">
-      <stop offset="0" stop-color="#b9a7ff" stop-opacity="0.13"/>
-      <stop offset="1" stop-color="#b9a7ff" stop-opacity="0"/>
+    <radialGradient id="glowB" cx="0.06" cy="0.94" r="0.6">
+      <stop offset="0" stop-color="#4b8dff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#4b8dff" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
@@ -164,22 +207,25 @@ export function ogSvg({ title, eyebrow = '炜轩的blog · 技术笔记', meta =
   <rect width="${W}" height="${H}" fill="url(#glowA)"/>
   <rect width="${W}" height="${H}" fill="url(#glowB)"/>
 
-  <g fill="none" stroke="#b9a7ff">
+  <g fill="none" stroke="#a78bfa">
     <circle cx="1092" cy="132" r="74" stroke-opacity="0.16" stroke-width="1.5"/>
     <circle cx="1092" cy="132" r="136" stroke-opacity="0.1" stroke-width="1.5"/>
     <circle cx="1092" cy="132" r="206" stroke-opacity="0.06" stroke-width="1.5"/>
     <circle cx="1092" cy="132" r="286" stroke-opacity="0.03" stroke-width="1.5"/>
   </g>
 
-  <rect x="72" y="58" width="40" height="3" rx="1.5" fill="#b9a7ff"/>
+  <g transform="translate(72 42)">
+    <path d="M14 4.6c.68 7.2 4.14 10.66 11.34 11.34.8.08.8 1.32 0 1.4C18.14 18.02 14.68 21.48 14 28.68c-.08.8-1.32.8-1.4 0-.68-7.2-4.14-10.66-11.34-11.34-.8-.08-.8-1.32 0-1.4C8.46 15.26 11.92 11.8 12.6 4.6c.08-.8 1.32-.8 1.4 0Z" fill="url(#sparkMark)"/>
+    <path d="M25.4 1.8c.28 2.98 1.94 4.64 4.92 4.92.34.03.34.53 0 .56-2.98.28-4.64 1.94-4.92 4.92-.03.34-.53.34-.56 0-.28-2.98-1.94-4.64-4.92-4.92-.34-.03-.34-.53 0-.56 2.98-.28 4.64-1.94 4.92-4.92.03-.34.53-.34.56 0Z" fill="url(#sparkMark)" opacity="0.82"/>
+  </g>
 
-  <text x="72" y="96" font-family="${FONT}" font-size="21" letter-spacing="3" fill="#a79cb8">${escapeXml(eyebrow)}</text>
+  <text x="72" y="110" font-family="${FONT}" font-size="21" letter-spacing="3" fill="#aaa4bc">${escapeXml(eyebrow)}</text>
 
   ${titleText}
 
-  <line x1="72" y1="512" x2="1128" y2="512" stroke="#ffffff" stroke-opacity="0.09"/>
+  <line x1="72" y1="512" x2="1128" y2="512" stroke="#ffffff" stroke-opacity="0.08"/>
 
-  <text x="72" y="556" font-family="${FONT}" font-size="22" fill="#a79cb8">${escapeXml(metaText)}</text>
-  <text x="1128" y="556" font-family="${MONO}" font-size="21" letter-spacing="0.5" text-anchor="end" fill="#b9a7ff">wx-blog.github.io</text>
+  <text x="72" y="556" font-family="${FONT}" font-size="22" fill="#aaa4bc">${escapeXml(metaText)}</text>
+  <text x="1128" y="556" font-family="${MONO}" font-size="21" letter-spacing="0.5" text-anchor="end" fill="#b3a4ff">wx-blog.github.io</text>
 </svg>`;
 }

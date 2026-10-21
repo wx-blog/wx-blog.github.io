@@ -1,8 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublishedPosts } from '../utils/posts';
+import { collectTags, getPublishedPosts } from '../utils/posts';
 
 const posts = await getPublishedPosts();
+const popular = collectTags(posts).slice(0, 6);
 ---
 
 <BaseLayout
@@ -45,6 +46,20 @@ const posts = await getPublishedPosts();
       <p class="search-hint">
         按 <kbd>/</kbd> 可直接聚焦搜索框，按 <kbd>Esc</kbd> 清空。
       </p>
+
+      {
+        popular.length > 0 && (
+          <div class="search-chips" data-reveal style="--d:.16s">
+            <span class="search-chips__label mono-label">POPULAR</span>
+            {popular.map(([tag, count]) => (
+              <a class="search-chip" href={`/search/?q=${encodeURIComponent(tag)}`}>
+                {tag}
+                <span class="search-chip__count">{String(count).padStart(2, '0')}</span>
+              </a>
+            ))}
+          </div>
+        )
+      }
 
       <p class="search-hint" id="search-status" role="status" aria-live="polite"></p>
       <ol class="search-results" id="search-results"></ol>

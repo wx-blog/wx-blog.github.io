@@ -96,10 +96,10 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
 
     {/* 浏览器 UI 配色（移动端状态栏 / 桌面地址栏）：
         站点只有暗色，所以不再按系统偏好给两个值 —— 直接锁成
-        站点底色 #070a11（与 --bg 一致）。
+        站点底色 #050509（与 --bg 一致）。
         原来那条 `prefers-color-scheme: light` 会让浅色系统的用户
         看到一条白色状态栏压在深色页面上，很突兀。 */}
-    <meta name="theme-color" content="#07050c" />
+    <meta name="theme-color" content="#050509" />
 
     <meta property="og:type" content={type} />
     <meta property="og:title" content={pageTitle} />
@@ -171,6 +171,9 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
   </head>
 
   <body>
+    {/* 站内换页时的顶部进度条。纯装饰，不承担导航状态说明。 */}
+    <div class="route-progress" id="route-progress" aria-hidden="true"></div>
+
     <Backdrop />
 
     <a class="skip-link" href="#main">跳到正文</a>
@@ -410,7 +413,9 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           ) {
             return;
           }
-          const input = document.getElementById('search-input');
+          const input =
+            document.getElementById('search-input') ??
+            document.querySelector('[data-search-input]');
           if (!input) return;
           event.preventDefault();
           input.focus();
@@ -551,6 +556,174 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
         }
         window.__zx.setup();
         window.__zx.enhanceCode();
+      })();
+    </script>
+
+    {/* 站内进度条 + 三个轻量交互：数字滚动、首屏光标光斑、卡片聚光。
+        全部只改 transform / 自定义属性，减少动态效果时直接不绑定。 */}
+    <script is:inline>
+      (() => {
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        /* ---------- 顶部进度条：ClientRouter 开始加载 → 换页结束 ----------
+           每次换页都会换掉整份 DOM，闭包里缓存的那个 div 已经不在文档里，
+           所以这里始终按 id 现查，并在 after-swap 把状态交给新的节点。 */
+        const barEl = () => document.getElementById('route-progress');
+        let failsafe = 0;
+        const resetBar = () => {
+          const el = barEl();
+          if (el) el.className = 'route-progress';
+        };
+
+        if (!window.__routeBar) {
+          window.__routeBar = true;
+
+          document.addEventListener('astro:before-preparation', () => {
+            const el = barEl();
+            if (!el) return;
+            clearTimeout(failsafe);
+            el.className = 'route-progress is-loading';
+            failsafe = window.setTimeout(resetBar, 8000);
+          });
+          document.addEventListener('astro:after-preparation', () => {
+            barEl()?.classList.add('is-ready');
+          });
+          document.addEventListener('astro:after-swap', () => {
+            const el = barEl();
+            if (el) el.className = 'route-progress is-loading is-ready';
+          });
+          document.addEventListener('astro:page-load', () => {
+            const el = barEl();
+            if (!el) return;
+            clearTimeout(failsafe);
+            if (!el.classList.contains('is-loading')) {
+              resetBar();
+              return;
+            }
+            el.classList.remove('is-loading', 'is-ready');
+            el.classList.add('is-done');
+            window.setTimeout(resetBar, 420);
+          });
+        }
+
+        /* ---------- 数字滚动 ---------- */
+        let counterIO = null;
+
+        const countUp = (el) => {
+          const target = Number(el.dataset.count || 0);
+          if (!Number.isFinite(target)) return;
+          if (reduce) {
+            el.textContent = String(target);
+            return;
+          }
+          const started = performance.now();
+          const duration = 900;
+          const tick = (now) => {
+            const p = Math.min((now - started) / duration, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = String(Math.round(target * eased));
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        };
+
+        const setupCounters = () => {
+          if (counterIO) counterIO.disconnect();
+          const els = document.querySelectorAll('[data-count]');
+          if (!els.length) return;
+          if (reduce) {
+            els.forEach((el) => {
+              el.textContent = el.dataset.count || '0';
+            });
+            return;
+          }
+          counterIO = new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                countUp(entry.target);
+                counterIO.unobserve(entry.target);
+              }
+            },
+            { threshold: 0.5 },
+          );
+          els.forEach((el) => {
+            el.textContent = '0';
+            counterIO.observe(el);
+          });
+        };
+
+        /* ---------- 首屏光标光斑：一个 40rem 的渐变圆跟着指针平移 ---------- */
+        const setupSpot = () => {
+          const hero = document.querySelector('.hero');
+          const spot = hero?.querySelector('[data-hero-spot]');
+          if (!hero || !spot || reduce) return;
+          if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+          if (hero.dataset.spotBound === '1') return;
+          hero.dataset.spotBound = '1';
+
+          let raf = 0;
+          let x = 0;
+          let y = 0;
+
+          hero.addEventListener(
+            'pointermove',
+            (event) => {
+              const rect = hero.getBoundingClientRect();
+              x = event.clientX - rect.left;
+              y = event.clientY - rect.top;
+              spot.classList.add('is-on');
+              if (raf) return;
+              raf = requestAnimationFrame(() => {
+                raf = 0;
+                spot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+              });
+            },
+            { passive: true },
+          );
+
+          hero.addEventListener('pointerleave', () => {
+            spot.classList.remove('is-on');
+          });
+        };
+
+        /* ---------- 卡片聚光：把指针位置写进 CSS 变量，由 ::after 画出来 ---------- */
+        const setupCards = () => {
+          if (reduce) return;
+          for (const card of document.querySelectorAll('.card')) {
+            if (card.dataset.spotBound === '1') continue;
+            card.dataset.spotBound = '1';
+
+            let raf = 0;
+            let x = 0;
+            let y = 0;
+
+            card.addEventListener(
+              'pointermove',
+              (event) => {
+                const rect = card.getBoundingClientRect();
+                x = event.clientX - rect.left;
+                y = event.clientY - rect.top;
+                if (raf) return;
+                raf = requestAnimationFrame(() => {
+                  raf = 0;
+                  card.style.setProperty('--spot-x', `${x}px`);
+                  card.style.setProperty('--spot-y', `${y}px`);
+                });
+              },
+              { passive: true },
+            );
+          }
+        };
+
+        const init = () => {
+          setupCounters();
+          setupSpot();
+          setupCards();
+        };
+
+        document.addEventListener('astro:page-load', init);
+        if (document.readyState !== 'loading') init();
       })();
     </script>
   </body>

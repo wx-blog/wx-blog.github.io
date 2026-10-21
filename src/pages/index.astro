@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
-import { collectTags, getPublishedPosts, postUrl, tagUrl, readingTime } from '../utils/posts';
+import Spark from '../components/Spark.astro';
+import { collectTags, getPublishedPosts, postUrl, tagUrl, readingTime, formatDate } from '../utils/posts';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 5);
@@ -13,7 +14,7 @@ const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
    手写清单需要跟实际文章永远保持同步——加了新方向忘了改这里，
    首屏就会出现点进去空空如也的死链。用标签则天然自洽：
    有文章才有标签，没文章的方向不会出现在首屏。
-   上限 4 个，正好排满首屏底部的一行索引。 */
+   上限 4 个，正好排满输入框下面的一行。 */
 const topics = tags.slice(0, 4);
 
 /* 首屏推荐：用学习路径里的第一篇，而不是"最新一篇"。
@@ -21,44 +22,93 @@ const topics = tags.slice(0, 4);
    标成"最新"是在编造事实。推荐一篇地基性质的文章反而更诚实。 */
 const recommended =
   posts.find((p) => p.id === '2026-09-21-linux-permission-model') ?? posts[0];
+
+const lastUpdated = posts.reduce(
+  (latestDate, post) => (post.data.pubDate > latestDate ? post.data.pubDate : latestDate),
+  posts[0]?.data.pubDate ?? new Date(),
+);
 ---
 
 <BaseLayout>
   <!--
-    首屏：左对齐的两栏构图 + 底部索引。
+    首屏：一块会呼吸的极光背景 + 一个真正能用的搜索框。
     ------------------------------------------------------------
-    参考的是一张 fintech 落地页：近黑底、细竖线、左侧超大标题、
-    右侧短段与数据、底部紫色地平线和大弧线。
-    这里只借它的**骨架**（对齐方式、层级、留白），不搬它的文案，
-    也不使用任何与站内事实无关的数字。
+    构图仍然是「左内容 / 右说明」，但材质整体换代：
+      · 纯黑底上放三团低速漂移的蓝紫光，代替原来平直的网格与地平线；
+      · 标题里三个字走蓝→紫→粉的渐变，不靠再加一层装饰；
+      · 搜索框直接提交到 /search/，不是摆设；
+      · 标签、统计、入口全部收进大圆角面板，和 AI 工具的工作台一致。
 
-    为什么从居中改成左对齐：
-    居中构图只有一条中轴线，所有元素的起点相同，层级只能靠字号区分；
-    左对齐把标题、正文、索引串成一条竖线，右侧留白给数据，
-    视线从上到下只需要沿着一侧走，信息更容易被扫完。
-
-    地平线弧线纯 CSS 绘制，放在 .hero 内部而不是全站背景：
-    它属于首屏构图，带进列表页/文章页只会干扰阅读。
+    动效只碰 transform / opacity：aurora 的漂移、星标的呼吸、
+    数字滚动、卡片聚光都是合成层操作，不触发重排。
   -->
   <section class="hero">
+    <div class="hero__aurora" aria-hidden="true">
+      <span class="hero__blob hero__blob--1"></span>
+      <span class="hero__blob hero__blob--2"></span>
+      <span class="hero__blob hero__blob--3"></span>
+    </div>
+    <div class="hero__spot" data-hero-spot aria-hidden="true"></div>
+
     <div class="hero__inner">
       <div class="hero__main">
-        <p class="hero__eyebrow" data-hero="1">
-          <span class="pulse-dot" aria-hidden="true"></span>
+        <p class="hero__eyebrow">
+          <Spark class="hero__eyebrow-spark" size={16} id="spark-hero" />
           <span class="mono-label">LINUX / CLOUD / INFRA</span>
+          <span class="hero__eyebrow-count">{String(posts.length).padStart(2, '0')} NOTES</span>
         </p>
 
-        <h1 class="hero__title" data-hero="2">
+        <h1 class="hero__title">
           把踩过的坑，<br />写成<span class="grad-text">能复现</span>的笔记
         </h1>
 
-        <p class="hero__lede" data-hero="3">
-          实验记录、踩坑复盘，以及能直接贴进终端的命令。
+        <p class="hero__lede">
+          实验记录、踩坑复盘，以及能直接贴进终端的命令。<br class="hero__br" />
+          没有转述，只有实际跑过的那一遍。
         </p>
+
+        <!-- 真实的 GET 表单：无 JS 也能把 q 带到搜索页 -->
+        <form class="hero__search" action="/search/" method="get" role="search">
+          <Spark class="hero__search-spark" size={19} id="spark-search" sparkle={false} />
+          <input
+            type="search"
+            name="q"
+            data-search-input
+            placeholder="搜索笔记：LVM、firewalld、Ceph、Ansible…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="搜索文章"
+          />
+          <kbd aria-hidden="true">/</kbd>
+          <button type="submit" aria-label="开始搜索">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path
+                d="M4 10h11M10.5 5l5 5-5 5"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"></path>
+            </svg>
+          </button>
+        </form>
+
+        {
+          topics.length > 0 && (
+            <div class="hero__chips">
+              <span class="hero__chips-label mono-label">TOPICS</span>
+              {topics.map(([tag, count]) => (
+                <a class="hero__chip" href={tagUrl(tag)}>
+                  {tag}
+                  <span class="hero__chip-count">{String(count).padStart(2, '0')}</span>
+                </a>
+              ))}
+            </div>
+          )
+        }
 
         {
           recommended && (
-            <a class="hero__start" href={postUrl(recommended.id)} data-hero="4">
+            <a class="hero__start" href={postUrl(recommended.id)}>
               <span class="hero__start-meta">
                 <span class="mono-label">START HERE</span>
                 <span class="hero__start-rule" aria-hidden="true" />
@@ -72,53 +122,56 @@ const recommended =
         }
       </div>
 
-      <aside class="hero__aside" data-hero="5">
-        <p class="hero__aside-label mono-label">// FIELD NOTES</p>
+      <aside class="hero__aside">
+        <div class="hero__aside-top">
+          <p class="hero__aside-label mono-label">// FIELD NOTES</p>
+          <span class="hero__aside-live">
+            <span class="hero__aside-dot" aria-hidden="true"></span>
+            STATIC · NO TRACKING
+          </span>
+        </div>
+
         <p class="hero__aside-text">
           Linux 与云计算方向的实验记录。命令都实际跑过，报错、取舍和最后怎么绕过去的，一并写清楚。
         </p>
 
         <div class="hero__stats">
           <div class="hero__stat">
-            <span class="hero__stat-value">{posts.length}</span>
+            <span class="hero__stat-value" data-count={posts.length}>{posts.length}</span>
             <span class="hero__stat-label mono-label">ARTICLES</span>
           </div>
           <div class="hero__stat">
-            <span class="hero__stat-value">{tags.length}</span>
+            <span class="hero__stat-value" data-count={tags.length}>{tags.length}</span>
             <span class="hero__stat-label mono-label">TOPICS</span>
           </div>
           <div class="hero__stat">
-            <span class="hero__stat-value">{totalMinutes}</span>
+            <span class="hero__stat-value" data-count={totalMinutes}>{totalMinutes}</span>
             <span class="hero__stat-label mono-label">MIN READ</span>
           </div>
         </div>
+
+        <p class="hero__aside-updated">
+          <span class="mono-label">LAST UPDATE</span>
+          <time datetime={lastUpdated.toISOString()}>{formatDate(lastUpdated)}</time>
+        </p>
+
+        <a class="hero__aside-link" href="/about/">这个站怎么建的 <span aria-hidden="true">↗</span></a>
       </aside>
     </div>
 
     <div class="hero__foot">
-      {
-        topics.length > 0 && (
-          <nav class="hero__topic-list" aria-label="技术方向">
-            {topics.map(([tag, count]) => (
-              <a class="hero__topic" href={tagUrl(tag)}>
-                <span class="hero__topic-name">{tag}</span>
-                <span class="hero__topic-count">{String(count).padStart(2, '0')}</span>
-              </a>
-            ))}
-          </nav>
-        )
-      }
-
       <a class="hero__scroll" href="#latest">
         <span class="mono-label">SCROLL</span>
         <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
       </a>
+
+      <a class="hero__all" href="/blog/">
+        全部 {posts.length} 篇笔记
+        <span aria-hidden="true">↗</span>
+      </a>
     </div>
 
-    <div class="hero__horizon" aria-hidden="true">
-      <span class="hero__arc hero__arc--1"></span>
-      <span class="hero__arc hero__arc--2"></span>
-    </div>
+    <div class="hero__horizon" aria-hidden="true"></div>
   </section>
 
   <section class="section" id="latest">
