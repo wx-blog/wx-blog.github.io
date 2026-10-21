@@ -3823,6 +3823,10 @@ a.tag:hover {
 .path {
   padding: clamp(1.25rem, 1rem + 1.2vw, 2rem);
   border-radius: 1.2rem;
+  /* 网格项的 min-width 默认是 auto：卡片内部一段不肯断行的长标题，
+     会反过来把 1fr 的轨道撑宽，320px 下整页横向多出 34px。
+     显式归零，把宽度交还给外层网格；长词再由 .path__name 处理。 */
+  min-width: 0;
 }
 
 .path__head {
@@ -3911,6 +3915,10 @@ a.tag:hover {
 .path__name {
   font-size: 0.9375rem;
   line-height: 1.45;
+  /* 标题左、时长右的 flex 行里，允许标题先收缩再断词，
+     否则 SUID·SGID·Sticky 这类中间点连写的技术名词不肯换行。 */
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .path__time {
@@ -5794,6 +5802,9 @@ button:focus-visible {
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  /* 画布边界交给 contain，里面的 blob 再怎么漂也不会让浏览器
+     把失效范围算到首屏之外 */
+  contain: paint;
   pointer-events: none;
 }
 
@@ -5801,7 +5812,9 @@ button:focus-visible {
   position: absolute;
   display: block;
   border-radius: 50%;
-  will-change: transform;
+  /* 不再常驻 will-change：动画期间浏览器本来就会为它们建层，
+     而首屏滚过去之后这两个层没有理由一直占着显存。 */
+  will-change: auto;
 }
 
 .hero__blob--1 {
@@ -5811,11 +5824,11 @@ button:focus-visible {
   height: min(54rem, 80vw);
   background: radial-gradient(
     circle at 50% 50%,
-    rgba(66, 108, 255, 0.3),
-    rgba(66, 108, 255, 0.1) 42%,
+    rgba(66, 108, 255, 0.26),
+    rgba(66, 108, 255, 0.085) 42%,
     transparent 68%
   );
-  animation: aurora-a 24s var(--ease) infinite alternate;
+  animation: aurora-a 34s var(--ease) infinite alternate;
 }
 
 .hero__blob--2 {
@@ -5825,25 +5838,11 @@ button:focus-visible {
   height: 46rem;
   background: radial-gradient(
     circle at 50% 50%,
-    rgba(140, 84, 255, 0.24),
-    rgba(140, 84, 255, 0.08) 44%,
+    rgba(140, 84, 255, 0.21),
+    rgba(140, 84, 255, 0.07) 44%,
     transparent 68%
   );
-  animation: aurora-b 30s var(--ease) infinite alternate;
-}
-
-.hero__blob--3 {
-  left: 18%;
-  bottom: -26rem;
-  width: min(72rem, 110vw);
-  height: 42rem;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(72, 132, 255, 0.2),
-    rgba(168, 96, 255, 0.09) 46%,
-    transparent 70%
-  );
-  animation: aurora-c 20s var(--ease) infinite alternate;
+  animation: aurora-b 42s var(--ease) infinite alternate;
 }
 
 @keyframes aurora-a {
@@ -5851,25 +5850,16 @@ button:focus-visible {
     transform: translate3d(0, 0, 0) scale(1);
   }
   to {
-    transform: translate3d(4%, 3%, 0) scale(1.06);
+    transform: translate3d(2.5%, 2%, 0) scale(1.035);
   }
 }
 
 @keyframes aurora-b {
   from {
-    transform: translate3d(0, 0, 0) scale(1.02);
+    transform: translate3d(0, 0, 0) scale(1.01);
   }
   to {
-    transform: translate3d(-4%, 5%, 0) scale(0.97);
-  }
-}
-
-@keyframes aurora-c {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(2%, -4%, 0) scale(1.05);
+    transform: translate3d(-2.5%, 3%, 0) scale(0.985);
   }
 }
 
@@ -6305,6 +6295,11 @@ button:focus-visible {
 
 .hero__horizon {
   height: min(40rem, 70vh);
+  /* 地平线贴着首屏底边裁切。不做收尾的话，滚到首屏末端时
+     紫光会在一条水平线上突然消失，看起来像半块矩形。
+     用遮罩淡掉最下面 38%：首屏内的光不受影响，越过首屏自然熄掉。 */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 100%);
 }
 
 .hero__horizon::before {
@@ -7343,5 +7338,331 @@ html.is-intro::-webkit-scrollbar-track {
 
   .intro__stage {
     transition: none;
+  }
+}
+
+
+/* ==========================================================================
+   33. 丝滑滚动 + 苹果式的克制纵深
+
+   用户反馈：「滑动页面有点卡顿，让页面变得丝滑」「再提升质感，
+   参考苹果官网，高级、大气、简约，透视的感觉刚刚好」。
+
+   这一节只做两件事，而且刻意分开：
+
+   ① 先让滚动变便宜。
+      卡顿不是"CUP 不够"，而是滚动时还有东西在每帧重新计算：
+        · 页头的 backdrop-filter 要实时采样身后滚动的整条内容；
+        · 三团极光 + 一颗呼吸星标 + 一条轨道，永远在合成。
+      处理办法不是把画面调弱，而是**让它们不必在滚动时工作**：
+      滚动期间页头退回实色、装饰动画挂起，停止 160ms 后原样恢复。
+      滚动时人的注意力在内容上，看不出这个切换；停下来时才看到玻璃。
+
+   ② 再补纵深。
+      苹果的"高级"很少来自更多颜色，而是来自三件事：
+        · 光有方向（顶部一束柔光、边缘轻微压暗）；
+        · 材质有厚度（1px 内高光 + 一层贴着地面的阴影）；
+        · 透视有上限（面板跟着指针倾 2° 左右，再多就假）。
+      所以这里没有新增装饰元素，只把已有的面板、标题和背景
+      在"光照"和"层叠"上重新排了一次。
+
+   所有新增动效都只碰 transform / opacity；
+   减少动态效果下全部退化为静止版本。
+   ========================================================================== */
+
+/* ---------- 33.1 滚动时：页头实色、装饰挂起 ----------
+
+   ⚠️ 页头的 transition 列表里必须去掉 backdrop-filter。
+   浏览器对 blur 的过渡不是"改个数值"，而是每帧重新计算模糊半径，
+   滚动开始/结束时反而最容易掉帧。现在只过渡背景色，模糊瞬间切换，
+   被背景色的 0.3s 渐变遮住，看不出接缝。 */
+.site-header {
+  transition:
+    background-color 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+
+.site-header.is-scrolled {
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+
+/* 滚动中：93% 的近黑实色，足够压住底下的正文，也不再采样背景。
+   到顶时 is-scrolled 会移除，页头重新变透明。 */
+html.is-scrolling .site-header.is-scrolled {
+  background: color-mix(in srgb, var(--bg) 93%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 进入滚动的第一帧必须直接是 93% 实色。若保留 background-color 过渡，
+   滚动刚开始的 0.3s 会从透明慢慢变实（实测 60ms 时 alpha 只有 0.67），
+   正文从页头底下透出来，看着像脏了一层。 */
+html.is-scrolling .site-header {
+  transition: border-color 0.3s var(--ease);
+}
+
+/* 这些动画不会"演完"，只要在视口里就一直跑。
+   滚动期间统一暂停，停手后自动续上——看起来只是光变安静了一点。 */
+html.is-scrolling .hero__blob,
+html.is-scrolling .hero__eyebrow-spark,
+html.is-scrolling .hero__aside-dot,
+html.is-scrolling .hero__scroll-arrow,
+html.is-scrolling .page-hero::before {
+  animation-play-state: paused;
+}
+
+/* 滚出视口后同样没有继续合成的理由。
+   JS 通过 IntersectionObserver 给容器挂 .is-offstage（见 BaseLayout）。 */
+.hero.is-offstage .hero__blob,
+.hero.is-offstage .hero__eyebrow-spark,
+.hero.is-offstage .hero__aside-dot,
+.hero.is-offstage .hero__scroll-arrow,
+.page-hero.is-offstage::before {
+  animation-play-state: paused;
+}
+
+/* 小屏 GPU 更紧张，也给更安静的观感：极光停在原地，
+   颗粒压低一档。构图不变，只是不再"呼吸"。 */
+@media (max-width: 48rem) {
+  .hero__blob {
+    animation: none;
+  }
+
+  .grain {
+    opacity: calc(var(--noise-opacity) * 0.72);
+  }
+}
+
+/* ---------- 33.2 背景：一束顶光 + 一圈很轻的暗角 ----------
+
+   苹果的产品页几乎都有一束从上方打下来的柔光，
+   同时四角比中心略暗——这两件事共同把视线收进画面中央。
+   都是静态渐变，滚动时零成本。 */
+.backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 68% at 50% -14%,
+      rgba(255, 255, 255, 0.04),
+      transparent 60%
+    ),
+    radial-gradient(
+      132% 104% at 50% 40%,
+      transparent 54%,
+      rgba(0, 0, 0, 0.34) 100%
+    );
+}
+
+/* 撤掉内页页头自带的左上角径向光（31.7 那一版）。
+   那个百分比椭圆在近黑底上收尾时，人眼能看出明显的截止边——
+   截图里就是一块边缘发硬的暗矩形，正好压在标题左侧。
+   页头的层次改由上面的全局顶光与暗角负责，右侧轨道保留自己的光。 */
+.page-hero {
+  background: none;
+}
+
+/* ---------- 33.3 首屏右栏：2° 的透视 ----------
+
+   只给这一张面板做。rotateX / rotateY 的最大幅度分别是 ±1.8° / ±2.4°，
+   默认值是 0：没有指针、触屏、减少动态效果时，就是一张普通卡片。
+   指针位置由 JS 写入 --tilt-* 与 --sheen-*，这里只负责画。 */
+.hero__aside {
+  transform: perspective(1200px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  transition:
+    transform 0.7s var(--ease-out),
+    border-color 0.3s var(--ease),
+    background-color 0.3s var(--ease),
+    box-shadow 0.5s var(--ease);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.085),
+    0 16px 36px -28px rgba(0, 0, 0, 0.85),
+    0 48px 110px -64px rgba(86, 68, 220, 0.95);
+}
+
+/* 跟手时把过渡压短，松开后回到 0.7s 的慢回弹。
+   transition-duration 的四个值与上面的属性一一对应。 */
+.hero__aside.is-tilting {
+  transition-duration: 0.09s, 0.3s, 0.3s, 0.5s;
+}
+
+/* 一道跟着指针走的柔光。z-index:-1 让它在面板底色之上、文字之下，
+   由 .hero__aside 自己的 z-index 建立层叠上下文。 */
+.hero__aside::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    18rem circle at var(--sheen-x, 30%) var(--sheen-y, 0%),
+    rgba(255, 255, 255, 0.085),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity 0.45s var(--ease);
+}
+
+.hero__aside.is-tilting::after {
+  opacity: 1;
+}
+
+/* 入场时 .is-entering 的 translateY 优先级更高，不会与透视打架；
+   数字用等宽字形，滚动计数时不会左右抖。 */
+.hero__stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 33.4 面板与卡片：厚度来自"一条高光 + 一层接地阴影" ----------
+
+   不是加边框、加发光，而是让每块面板顶部有一道 1px 的光，
+   底部有一层几乎看不见的接触阴影——这是纸片和实体卡片的分界。 */
+.card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.012) 55%,
+    rgba(255, 255, 255, 0.028) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 44px -38px rgba(0, 0, 0, 0.9);
+  transition:
+    border-color 0.35s var(--ease),
+    background-color 0.35s var(--ease),
+    box-shadow 0.35s var(--ease),
+    translate 0.4s var(--ease-out);
+}
+
+.card:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.018) 55%,
+    rgba(255, 255, 255, 0.036) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.075),
+    0 28px 58px -40px rgba(0, 0, 0, 0.95),
+    0 34px 80px -58px rgba(112, 90, 255, 0.6);
+  translate: 0 -3px;
+}
+
+.card--feature {
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.16), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 40px 90px -78px rgba(0, 0, 0, 0.95);
+}
+
+/* 首篇大卡悬停时也一样抬 3px，不额外加光，
+   避免和右上角的紫色 Spotlight 抢视线。 */
+.card--feature:hover {
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.2), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+}
+
+/* ---------- 33.5 节奏：多留一点空气 ---------- */
+
+.section {
+  padding-top: clamp(5rem, 3rem + 6.5vw, 8.75rem);
+}
+
+.section__head {
+  position: relative;
+  margin-bottom: clamp(2.25rem, 3.4vw, 3.5rem);
+}
+
+.section__title {
+  font-weight: 550;
+  letter-spacing: -0.042em;
+}
+
+.card-grid {
+  gap: clamp(1.15rem, 0.9rem + 1.2vw, 1.85rem);
+}
+
+/* 章节顶线不是"画出来的"，而是随标题入场从左侧展开。
+   没有 JS 时只保留原来的 1px 边线，不会丢结构。 */
+.section__head::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.26),
+    rgba(185, 167, 255, 0.14) 42%,
+    transparent 82%
+  );
+  opacity: 0.7;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 1.15s var(--ease-out) 0.08s;
+}
+
+.section__head:has(.is-in)::after {
+  transform: scaleX(1);
+}
+
+/* 标题的最后一档呼吸：只改字重和字距，不动字号，
+   布局不会因为断点重排。 */
+.hero__title {
+  letter-spacing: -0.041em;
+}
+
+/* 首屏右栏的文案再松半口气，数字与分割线之间的留白更接近产品页。 */
+.hero__aside {
+  padding: clamp(1.5rem, 2.4vw, 2rem);
+}
+
+.hero__aside-text {
+  line-height: 1.85;
+}
+
+/* 单栏之后面板变成通栏，再做透视会像整块页面在倾斜，直接关掉。 */
+@media (max-width: 64rem) {
+  .hero__aside {
+    transform: none;
+    transition: none;
+  }
+
+  .hero__aside::after {
+    display: none;
+  }
+}
+
+/* ---------- 33.6 减少动态效果：全部静态化 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__aside {
+    transform: none;
+    transition: none;
+  }
+
+  .hero__aside::after {
+    display: none;
+  }
+
+  .section__head::after {
+    transform: none;
+    transition: none;
+  }
+
+  .hero__blob,
+  .page-hero::before {
+    animation: none;
   }
 }

@@ -573,22 +573,62 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
       (() => {
         if (!window.__zx) {
           const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          const root = document.documentElement;
           let io = null;
           let ticking = false;
+          let headerEl = null;
+          let headerState = null;
+          let tocLinks = [];
+          let tocTops = [];
+          let tocToken = 0;
+          let scrollTimer = 0;
+          let scrolling = false;
+          let resizeTimer = 0;
+
+          /* 目录高亮：位置只在页面稳定时量一次。
+             早先每帧对每个标题做 getBoundingClientRect，滚动时等于
+             每秒 60 次强制同步布局；文章越长、标题越多，越容易卡。
+             现在缓存 offsetTop，滚动时只做数字比较和 class 切换。 */
+          const collectToc = () => {
+            tocLinks = Array.from(document.querySelectorAll('.toc a[href^="#"]'));
+            tocTops = tocLinks.map((a) => {
+              let el = null;
+              try {
+                el = document.getElementById(decodeURIComponent(a.hash.slice(1)));
+              } catch {
+                /* 非法的 hash 直接当作跳过 */
+              }
+              return el ? el.getBoundingClientRect().top + window.scrollY : Infinity;
+            });
+          };
 
           const spy = () => {
-            const links = document.querySelectorAll('.toc a[href^="#"]');
-            if (!links.length) return;
-            let activeId = '';
-            for (const a of links) {
-              const el = document.getElementById(decodeURIComponent(a.hash.slice(1)));
-              if (el && el.getBoundingClientRect().top <= 130) {
-                activeId = decodeURIComponent(a.hash.slice(1));
-              }
+            if (!tocLinks.length) return;
+            const line = window.scrollY + 140;
+            let active = -1;
+            for (let i = 0; i < tocTops.length; i += 1) {
+              if (tocTops[i] <= line) active = i;
             }
-            for (const a of links) {
-              a.classList.toggle('is-active', decodeURIComponent(a.hash.slice(1)) === activeId);
+            for (let i = 0; i < tocLinks.length; i += 1) {
+              tocLinks[i].classList.toggle('is-active', i === active);
             }
+          };
+
+          /* 滚动状态只挂在 <html> 上，CSS 拿它做两件事：
+             · 页头从实时 backdrop-filter 退回实色（见 §33.1）；
+             · 暂停极光、呼吸点、轨道这些「一直在跑」的装饰动画。
+             滚动停止 160ms 后恢复，既保住静止时的质感，
+             又不让这些每帧付费的效果参与滚动。 */
+          const markScrolling = () => {
+            if (!scrolling) {
+              scrolling = true;
+              root.classList.add('is-scrolling');
+            }
+            clearTimeout(scrollTimer);
+            scrollTimer = window.setTimeout(() => {
+              scrolling = false;
+              root.classList.remove('is-scrolling');
+            }, 160);
           };
 
           const onScroll = () => {
@@ -596,14 +636,37 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
             ticking = true;
             requestAnimationFrame(() => {
               ticking = false;
-              const header = document.querySelector('.site-header');
-              if (header) header.classList.toggle('is-scrolled', window.scrollY > 8);
+              const y = window.scrollY;
+              if (headerEl) {
+                const next = y > 8;
+                if (next !== headerState) {
+                  headerState = next;
+                  headerEl.classList.toggle('is-scrolled', next);
+                }
+              }
+              markScrolling();
+              spy();
+            });
+          };
+
+          const sync = () => {
+            headerEl = document.querySelector('.site-header');
+            headerState = window.scrollY > 8;
+            headerEl?.classList.toggle('is-scrolled', headerState);
+            collectToc();
+            spy();
+            /* 字体加载完，标题高度会变，缓存的位置要重算一次。
+               token 防止快速换页时旧页面的 promise 把新页面的缓存写脏。 */
+            const token = ++tocToken;
+            document.fonts?.ready.then(() => {
+              if (token !== tocToken) return;
+              collectToc();
               spy();
             });
           };
 
           const setup = () => {
-            onScroll();
+            sync();
             if (reduce) {
               for (const el of document.querySelectorAll('[data-reveal]')) el.classList.add('is-in');
               return;
@@ -629,6 +692,14 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           };
 
           window.addEventListener('scroll', onScroll, { passive: true });
+
+          window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(() => {
+              collectToc();
+              spy();
+            }, 150);
+          });
 
           /**
            * 给正文里每个代码块装上工具条：语言标签 + 复制按钮。
@@ -944,11 +1015,88 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           });
         };
 
+        /* ---------- 首屏右栏的轻微透视 ----------
+           只给一张面板做，角度封在 2.4° 以内。再大就从"材质浮在纸上"
+           变成"网页在炫技"，也更容易让正文发虚。
+           指针位置同时写进 --sheen-x/y，由 ::after 画一道很淡的高光，
+           这是苹果产品图里那种"光跟着视角走"的最小实现。 */
+        const setupTilt = () => {
+          const card = document.querySelector('[data-tilt]');
+          if (!card || reduce) return;
+          if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+          if (card.dataset.tiltBound === '1') return;
+          card.dataset.tiltBound = '1';
+
+          let raf = 0;
+          let rx = 0;
+          let ry = 0;
+          let sx = 30;
+          let sy = 0;
+
+          const paint = () => {
+            raf = 0;
+            card.style.setProperty('--tilt-x', `${rx.toFixed(2)}deg`);
+            card.style.setProperty('--tilt-y', `${ry.toFixed(2)}deg`);
+            card.style.setProperty('--sheen-x', `${sx.toFixed(1)}%`);
+            card.style.setProperty('--sheen-y', `${sy.toFixed(1)}%`);
+          };
+
+          card.addEventListener(
+            'pointermove',
+            (event) => {
+              const rect = card.getBoundingClientRect();
+              if (!rect.width || !rect.height) return;
+              const px = (event.clientX - rect.left) / rect.width;
+              const py = (event.clientY - rect.top) / rect.height;
+              ry = (px - 0.5) * 4.8;
+              rx = (0.5 - py) * 3.6;
+              sx = px * 100;
+              sy = py * 100;
+              card.classList.add('is-tilting');
+              if (!raf) raf = requestAnimationFrame(paint);
+            },
+            { passive: true },
+          );
+
+          card.addEventListener('pointerleave', () => {
+            card.classList.remove('is-tilting');
+            rx = 0;
+            ry = 0;
+            sx = 30;
+            sy = 0;
+            if (!raf) raf = requestAnimationFrame(paint);
+          });
+        };
+
+        /* ---------- 离屏就停掉首屏/页头的装饰动画 ----------
+           极光和轨道都是无限循环，哪怕已经滚出视口浏览器仍可能继续合成。
+           文章读到底部时它们一点用都没有，停掉能省下两层常驻动画。 */
+        let stageIO = null;
+        const setupStage = () => {
+          if (reduce) return;
+          stageIO?.disconnect();
+          const stages = [document.querySelector('.hero'), document.querySelector('.page-hero')].filter(
+            Boolean,
+          );
+          if (!stages.length) return;
+          stageIO = new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                entry.target.classList.toggle('is-offstage', !entry.isIntersecting);
+              }
+            },
+            { rootMargin: '120px 0px' },
+          );
+          for (const el of stages) stageIO.observe(el);
+        };
+
         const init = () => {
           setupCounters();
           setupSpot();
           setupCards();
           setupAura();
+          setupTilt();
+          setupStage();
         };
 
         document.addEventListener('astro:page-load', init);
