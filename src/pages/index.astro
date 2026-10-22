@@ -28,19 +28,21 @@ const recommended =
   <!--
     首屏：一片有地平线的冰岛夜空 + 一个真正能用的搜索框。
     ------------------------------------------------------------
-    极光不再用 CSS 渐变硬拼。它是一张构建期算出来的纹理：
+    极光不再用 CSS 渐变硬拼。它是一组构建期算出来的纹理：
       · sky.webp：夜空、星点、地平线的暖色光污染和远处城镇的灯；
-      · aurora.webp：带透明通道的极光帘幕，细竖纹、折叠的高光边缘、
-        顶部偏青紫的色相，全部由噪声场生成，而不是等距条纹。
-    两层都是 2800×1200，cover + bottom 对齐，宽屏不裁掉地平线，
+      · aurora-a/b/c.webp：同一片极光帘幕的三个相位，带透明通道，
+        细竖纹、折叠的高光边缘、顶部偏青紫的色相全部由噪声场生成。
+    三层都是 2800×1200，cover + bottom 对齐，宽屏不裁掉地平线，
     手机端用 background-position 选取主帘幕所在的那一段。
-    运动只有一层 220s 的 transform/opacity 漂移：慢到像呼吸，
-    但任意两秒截屏都不会完全相同。静态层不用 filter / mix-blend-mode，
-    滚动期间和离屏后暂停，1440px 下仍稳在 60fps。
+    运动是 48s 一轮的 opacity 交叉淡化 + 各不相同的慢速 transform 漂移：
+    亮边缓慢换位置、竖纹起伏，但不会像整张照片在平移。
+    全程不碰 filter / mix-blend-mode，滚动期间和离屏后暂停。
   -->
   <section class="hero">
     <div class="hero__aurora" aria-hidden="true">
-      <span class="hero__curtain"></span>
+      <span class="hero__curtain hero__curtain--a"></span>
+      <span class="hero__curtain hero__curtain--b"></span>
+      <span class="hero__curtain hero__curtain--c"></span>
       <span class="hero__veil"></span>
       <span class="hero__grain"></span>
     </div>
