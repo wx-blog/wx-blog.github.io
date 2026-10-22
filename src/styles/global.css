@@ -7768,3 +7768,100 @@ html.is-scrolling .page-hero::before {
 .site-nav a {
   white-space: nowrap;
 }
+
+/* ---------- 33.10 文章卡片：把毛玻璃的边框找回来 ----------
+
+   上一版为了长列表的性能，把卡片压成了「1px 淡边框 + 几乎无底色」
+   的薄片。单看一张卡没问题，但四张并排时四块面板都消失，
+   只剩标题和一条分界线，列表读起来像纯文本，缺少「卡片」这层实体。
+
+   这里只恢复卡片的玻璃外壳，不动布局：
+     · 底色用带方向的四段渐变，而不是纯 rgba，
+       光从左上打过来，面板才有厚度；
+     · 边框提到 0.15 白，加内上缘高光、内下缘暗线和外圈轮廓光，
+       四条边在近黑背景上能明确收口；
+     · hover 时边框转紫，玻璃整体提亮一档，不位移——列表里
+       一次悬停只该有一个小反馈，抬卡片会带乱整行节奏。
+
+   性能上沿用页头的做法：滚动期间摘掉 backdrop-filter，
+   只留渐变底和边框；停手后模糊自动回来。这样滚动时不用
+   为每一张卡实时采样背景，静止时又能看到真正的磨砂质感。 */
+.card {
+  --card-glass: linear-gradient(
+    163deg,
+    rgba(255, 255, 255, 0.105) 0%,
+    rgba(255, 255, 255, 0.048) 38%,
+    rgba(255, 255, 255, 0.026) 72%,
+    rgba(255, 255, 255, 0.052) 100%
+  );
+  --card-glass-hover: linear-gradient(
+    163deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.075) 38%,
+    rgba(255, 255, 255, 0.045) 72%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+
+  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--card-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(160%) brightness(1.06);
+  backdrop-filter: blur(16px) saturate(160%) brightness(1.06);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 18px 44px -24px rgba(0, 0, 0, 0.7);
+  transition:
+    border-color 0.35s var(--ease),
+    box-shadow 0.35s var(--ease);
+}
+
+.card:hover {
+  border-color: rgba(168, 146, 255, 0.36);
+  background: var(--card-glass-hover);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.32),
+    0 24px 56px -24px rgba(0, 0, 0, 0.75);
+}
+
+/* 首篇仍保留左上角的紫光，只是把玻璃底垫在它下面 */
+.card--feature {
+  border-color: rgba(185, 167, 255, 0.24);
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.16), transparent 55%),
+    var(--card-glass);
+}
+
+.card--feature:hover {
+  border-color: rgba(185, 167, 255, 0.4);
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.2), transparent 58%),
+    var(--card-glass-hover);
+}
+
+/* 滚动中不实时采样背景：边框与渐变底还在，卡片不会突然消失 */
+html.is-scrolling .card {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* 不支持模糊时给一层更实的底，避免玻璃退化成看不清边界的水膜 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .card {
+    background: color-mix(in srgb, var(--bg) 92%, white);
+  }
+
+  .card:hover {
+    background: color-mix(in srgb, var(--bg) 88%, white);
+  }
+
+  .card--feature {
+    background:
+      radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.16), transparent 55%),
+      color-mix(in srgb, var(--bg) 92%, white);
+  }
+}
