@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { formatDate, getPublishedPosts, postUrl, readingTime } from '../utils/posts';
+import { getPublishedPosts, postUrl } from '../utils/posts';
 
 /**
  * 站内搜索索引。构建期生成一个静态 JSON，前端按需拉取。
@@ -34,8 +34,6 @@ export const GET: APIRoute = async () => {
     title: post.data.title,
     description: post.data.description,
     tags: post.data.tags,
-    date: formatDate(post.data.pubDate),
-    minutes: readingTime(post.body),
     url: postUrl(post.id),
     text: plainText(post.body),
   }));

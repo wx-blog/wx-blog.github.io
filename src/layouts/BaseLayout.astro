@@ -446,7 +446,11 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
                 <a href="${esc(doc.url)}">
                   <div class="search-result__title">${mark(doc.title, terms)}</div>
                   <p class="search-result__desc">${mark(doc.description, terms)}</p>
-                  <p class="search-result__meta">${esc(doc.date)} · ${esc(doc.tags.join(' / '))} · 约 ${doc.minutes} 分钟</p>
+                  ${
+                    doc.tags.length
+                      ? `<p class="search-result__meta">${esc(doc.tags.join(' / '))}</p>`
+                      : ''
+                  }
                 </a>
               </li>`,
             )

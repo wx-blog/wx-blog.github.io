@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getPublishedPosts, postUrl, readingTime } from '../utils/posts';
+import { getPublishedPosts, postUrl } from '../utils/posts';
 
 const posts = await getPublishedPosts();
 const byId = new Map(posts.map((p) => [p.id, p]));
@@ -85,16 +85,9 @@ const PATHS = [
 const paths = PATHS.map((path) => {
   const items = path.ids
     .map((id) => byId.get(id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p))
-    .map((post) => ({ post, minutes: readingTime(post.body) }));
-  return {
-    ...path,
-    items,
-    totalMinutes: items.reduce((sum, item) => sum + item.minutes, 0),
-  };
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  return { ...path, items };
 }).filter((path) => path.items.length > 0);
-
-const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
 ---
 
 <BaseLayout
@@ -108,7 +101,7 @@ const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
         别按时间读，按依赖读。
       </h1>
       <p class="page-hero__lede" data-reveal style="--d:.12s">
-        目前 {posts.length} 篇、累计约 {totalMinutes} 分钟。下面五条路径按「先懂什么、再懂什么」排过序，
+        目前 {posts.length} 篇。下面五条路径按「先懂什么、再懂什么」排过序，
         每条都能独立走完；不想挑的话，从第一条开始就行。
       </p>
     </header>
@@ -122,19 +115,16 @@ const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
               <div class="path__intro">
                 <h2 class="path__title">{path.title}</h2>
                 <p class="path__desc">{path.desc}</p>
-                <p class="path__meta">
-                  {path.items.length} 篇 · 约 {path.totalMinutes} 分钟
-                </p>
+                <p class="path__meta">{path.items.length} 篇</p>
               </div>
             </header>
 
             <ol class="path__steps">
-              {path.items.map(({ post, minutes }, j) => (
+              {path.items.map((post, j) => (
                 <li class="path__step">
                   <a href={postUrl(post.id)}>
                     <span class="path__num">{String(j + 1).padStart(2, '0')}</span>
                     <span class="path__name">{post.data.title}</span>
-                    <span class="path__time">{minutes} 分钟</span>
                   </a>
                 </li>
               ))}

@@ -2,12 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
 import Spark from '../components/Spark.astro';
-import { collectTags, getPublishedPosts, postUrl, tagUrl, readingTime, formatDate } from '../utils/posts';
+import { collectTags, getPublishedPosts, postUrl, tagUrl } from '../utils/posts';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 5);
 const tags = collectTags(posts);
-const totalMinutes = posts.reduce((sum, p) => sum + readingTime(p.body), 0);
 
 /* 首屏展示的技术方向：取标签里排在前面的几个。
    为什么用标签而不是手写一份方向清单：
@@ -23,10 +22,6 @@ const topics = tags.slice(0, 4);
 const recommended =
   posts.find((p) => p.id === '2026-09-21-linux-permission-model') ?? posts[0];
 
-const lastUpdated = posts.reduce(
-  (latestDate, post) => (post.data.pubDate > latestDate ? post.data.pubDate : latestDate),
-  posts[0]?.data.pubDate ?? new Date(),
-);
 ---
 
 <BaseLayout>
@@ -150,16 +145,7 @@ const lastUpdated = posts.reduce(
             <span class="hero__stat-value" data-count={tags.length}>{tags.length}</span>
             <span class="hero__stat-label mono-label">TOPICS</span>
           </div>
-          <div class="hero__stat">
-            <span class="hero__stat-value" data-count={totalMinutes}>{totalMinutes}</span>
-            <span class="hero__stat-label mono-label">MIN READ</span>
-          </div>
         </div>
-
-        <p class="hero__aside-updated">
-          <span class="mono-label">LAST UPDATE</span>
-          <time datetime={lastUpdated.toISOString()}>{formatDate(lastUpdated)}</time>
-        </p>
 
         <a class="hero__aside-link" href="/about/">这个站怎么建的 <span aria-hidden="true">↗</span></a>
       </aside>
@@ -188,7 +174,7 @@ const lastUpdated = posts.reduce(
         <a class="section__more" href="/blog/">全部文章 ↗</a>
       </div>
 
-      <PostList posts={latest} featureFirst />
+      <PostList posts={latest} featureFirst editorial />
     </div>
   </section>
 

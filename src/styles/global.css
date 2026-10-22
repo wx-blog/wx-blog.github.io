@@ -3915,20 +3915,10 @@ a.tag:hover {
 .path__name {
   font-size: 0.9375rem;
   line-height: 1.45;
-  /* 标题左、时长右的 flex 行里，允许标题先收缩再断词，
+  /* 标题在 flex 行里可以收缩并断词，
      否则 SUID·SGID·Sticky 这类中间点连写的技术名词不肯换行。 */
   min-width: 0;
   overflow-wrap: break-word;
-}
-
-.path__time {
-  margin-left: auto;
-  padding-left: 0.5rem;
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--text-faint);
-  white-space: nowrap;
 }
 
 .path-foot {
@@ -7760,4 +7750,139 @@ html.is-scrolling .page-hero::before {
     filter: none;
     transform: none;
   }
+}
+
+/* ---------- 33.8 首页索引：一张主卡，下面接两列条目 ----------
+
+   日期和阅读时长撤掉之后，卡片里只剩标题、摘录、标签。
+   如果四张卡仍然是同尺寸的盒子，信息层级反而更平。
+   所以这里只给首页换阵型：
+
+     · 首篇保留完整面板，作为这一节的「封面」；
+     · 其余四篇退成无底色条目，只用一条顶线分隔；
+     · 两列共用同一条视觉基线，标题区域给两行高度，
+       摘录和标签自然对齐，不再靠卡片边框撑结构。
+
+   这样页面里「面板」只出现在真正需要聚焦的地方，
+   列表本身安静下来，标题成为唯一的视觉主体。 */
+.hero__stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hero__aside-link {
+  margin-top: 1.15rem;
+}
+
+.card-grid--editorial {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(2rem, 4vw, 4.5rem);
+  row-gap: 0;
+}
+
+/* 首卡在单栏时，标题下沿正好压住正文区的顶线，
+   像一条紧贴文字的删除线。留半行空隙，让线成为分隔而不是下划线。 */
+.card--feature .card__head {
+  padding-bottom: clamp(0.35rem, 0.3rem + 0.5vw, 0.7rem);
+}
+
+.card-grid--editorial .card:not(.card--feature) {
+  padding: clamp(1.6rem, 1.4rem + 0.5vw, 2rem) 0
+    clamp(2.1rem, 1.7rem + 1vw, 2.8rem);
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  translate: none;
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__body {
+  padding-top: 0.6rem;
+  border-top: 0;
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__title {
+  max-width: 27ch;
+  font-size: clamp(1.22rem, 1.05rem + 0.5vw, 1.45rem);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  transition:
+    color 0.25s var(--ease),
+    translate 0.4s var(--ease-out);
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__desc {
+  max-width: 48ch;
+}
+
+/* 条目里的标签退回纯文字：两列条目本来就靠细线分栏，
+   再加一排圆角胶囊会重新变成「一排小盒子」。斜线做分隔，
+   和眉题里的 A / B / C 保持同一种语气。 */
+.card-grid--editorial .card:not(.card--feature) .card__tags {
+  align-items: baseline;
+  gap: 0 0.85rem;
+  margin-top: 0.05rem;
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__tags .tag {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: rgba(170, 164, 188, 0.7);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.9;
+  letter-spacing: 0.08em;
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__tags .tag + .tag::before {
+  content: '/';
+  margin-right: 0.62rem;
+  color: rgba(185, 167, 255, 0.42);
+}
+
+.card-grid--editorial .card:not(.card--feature) .card__tags .tag:hover {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--accent-hover);
+}
+
+.card-grid--editorial .card:not(.card--feature):hover {
+  border-top-color: rgba(185, 167, 255, 0.42);
+  background: none;
+  box-shadow: none;
+  translate: none;
+}
+
+.card-grid--editorial .card:not(.card--feature):hover .card__title {
+  translate: 3px 0;
+}
+
+/* 单列时去掉两条列的节奏，改成连续索引；minmax(0, 1fr)
+   而不是 1fr：否则卡片标题的 min-content 会把轨道撑宽，
+   320px 下整页出现横向滚动。 */
+@media (max-width: 52rem) {
+  .card-grid--editorial {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-grid--editorial .card:not(.card--feature) .card__title,
+  .card-grid--editorial .card:not(.card--feature):hover .card__title {
+    transition: none;
+    translate: none;
+  }
+}
+
+/* ---------- 33.9 页头导航：不拆字 ----------
+   390px 附近，链接的左右内边距正好把两个汉字挤到下一行，
+   「开始」会变成竖排。导航本来就有足够空间，禁止换行即可。
+   320px 由 34rem 那条断点收窄间距，仍然放得下。 */
+.site-nav a {
+  white-space: nowrap;
 }
