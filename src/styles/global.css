@@ -7668,3 +7668,96 @@ html.is-scrolling .page-hero::before {
     animation: none;
   }
 }
+
+/* ---------- 33.7 首屏欢迎语 ----------
+
+   这句话不抢主标题，负责在技术标签与主张之间加一层"人"。
+   做法只有三件事：把字号停在标题的 1/3 左右、用 0.12em 字距
+   把句子拉开、再给名字一道很轻的白色辉光。多一笔都会变成海报。
+
+   前面的短横线从透明过渡到紫色，末端收在一颗 4px 的光点上——
+   和首屏的星标、分割线是同一套语汇，而不是又一枚装饰。 */
+.hero__eyebrow {
+  /* 欢迎语插进来之后，标签层就不再需要原来那么大的下边距；
+     两段一起收紧，首屏新增的一行不会把搜索框往下顶太多。 */
+  margin-bottom: clamp(0.75rem, 1.5vh, 1rem);
+}
+
+.hero__welcome {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.7rem, 1.2vw, 1rem);
+  margin: 0 0 clamp(1.05rem, 2.3vh, 1.55rem);
+  font-size: clamp(1.0625rem, 0.82rem + 0.8vw, 1.5rem);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0.12em;
+  color: rgba(229, 225, 242, 0.74);
+  text-wrap: balance;
+}
+
+.hero__welcome-text {
+  transition:
+    opacity 0.9s var(--ease),
+    transform 1s var(--ease),
+    filter 0.9s var(--ease);
+}
+
+.is-entering .hero__welcome-text {
+  opacity: 0;
+  filter: blur(7px);
+  transform: translateY(12px);
+  transition-delay: 0.1s;
+}
+
+.hero__welcome-rule {
+  flex: none;
+  position: relative;
+  width: clamp(1.5rem, 1rem + 1.6vw, 2.75rem);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(179, 164, 255, 0.7));
+  transform-origin: 0 50%;
+  transition:
+    transform 0.95s var(--ease-out) 0.26s,
+    opacity 0.7s var(--ease) 0.26s;
+}
+
+.is-entering .hero__welcome-rule {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hero__welcome-rule::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #cabfff;
+  box-shadow: 0 0 10px 1px rgba(150, 125, 255, 0.55);
+  transform: translateY(-50%);
+}
+
+.hero__welcome-name {
+  padding-inline: 0.06em;
+  font-weight: 550;
+  letter-spacing: 0.16em;
+  color: var(--text);
+  text-shadow: 0 0 22px rgba(179, 164, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__welcome-text,
+  .hero__welcome-rule {
+    transition: none;
+  }
+
+  .is-entering .hero__welcome-text,
+  .is-entering .hero__welcome-rule {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
