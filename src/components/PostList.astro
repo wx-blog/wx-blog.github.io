@@ -7,18 +7,16 @@ interface Props {
   /** 首篇做成整行大卡片 */
   featureFirst?: boolean;
   showTags?: boolean;
-  /** 首页用：首篇仍是卡片，其余改成带顶线的条目，避免一屏全是同形盒子 */
-  editorial?: boolean;
 }
 
-const { posts, featureFirst = false, showTags = true, editorial = false } = Astro.props;
+const { posts, featureFirst = false, showTags = true } = Astro.props;
 ---
 
 {
   posts.length === 0 ? (
     <p class="empty">还没有文章。</p>
   ) : (
-    <div class:list={['card-grid', editorial && 'card-grid--editorial']}>
+    <div class="card-grid">
       {posts.map((post, i) => (
         <PostCard
           post={post}
