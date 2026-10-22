@@ -29,18 +29,24 @@ const recommended =
     首屏：一块会呼吸的极光背景 + 一个真正能用的搜索框。
     ------------------------------------------------------------
     构图仍然是「左内容 / 右说明」，但材质整体换代：
-      · 纯黑底上放三团低速漂移的蓝紫光，代替原来平直的网格与地平线；
+      · 纯黑底上放五层低速漂移的极光——薄荷绿、青蓝、蓝紫——
+        两团面光、一层带竖向褶皱的帘幕、一条主光带和一条右侧薄带，
+        加一层很淡的星点，各自错速漂移；
       · 标题里三个字走蓝→紫→粉的渐变，不靠再加一层装饰；
       · 搜索框直接提交到 /search/，不是摆设；
       · 标签、统计、入口全部收进大圆角面板，和 AI 工具的工作台一致。
 
-    动效只碰 transform / opacity：aurora 的漂移、星标的呼吸、
-    数字滚动、卡片聚光都是合成层操作，不触发重排。
+    动效只碰 transform / opacity；极光刻意不用 filter: blur 与
+    mix-blend-mode，改用渐变自带的柔边——1440px 下同屏能稳在 60fps。
+    滚动期间与首屏滚出视口后，这些动画会自动暂停（见 global.css）。
   -->
   <section class="hero">
     <div class="hero__aurora" aria-hidden="true">
+      <span class="hero__stars"></span>
       <span class="hero__blob hero__blob--1"></span>
       <span class="hero__blob hero__blob--2"></span>
+      <span class="hero__blob hero__blob--3"></span>
+      <span class="hero__blob hero__blob--4"></span>
     </div>
     <div class="hero__spot" data-hero-spot aria-hidden="true"></div>
 

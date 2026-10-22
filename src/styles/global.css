@@ -5798,6 +5798,10 @@ button:focus-visible {
      把失效范围算到首屏之外 */
   contain: paint;
   pointer-events: none;
+  /* 让几层极光在容器内部合成；不用 mix-blend-mode：
+     实测 screen 混合 + 大面积 filter 会把 1440px 首屏压到 20fps 左右。
+     这里全部走普通 alpha 叠加，亮度靠渐变本身的 alpha 控制。 */
+  isolation: isolate;
 }
 
 .hero__blob {
@@ -5809,49 +5813,290 @@ button:focus-visible {
   will-change: auto;
 }
 
+/* 星点：极光如果没有夜空做参照，只是一块绿色渐变。
+   点不能大、不能密——1~1.5px、二十来颗、整体半透明，
+   只在余光里闪，不参与构图。位置刻意避开标题正后方。 */
+.hero__stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 8% 12%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(1.2px 1.2px at 16% 26%, rgba(210, 235, 255, 0.6), transparent 100%),
+    radial-gradient(1.6px 1.6px at 24% 9%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(1px 1px at 30% 18%, rgba(220, 240, 255, 0.55), transparent 100%),
+    radial-gradient(1.4px 1.4px at 38% 7%, rgba(255, 255, 255, 0.65), transparent 100%),
+    radial-gradient(1.1px 1.1px at 47% 21%, rgba(210, 235, 255, 0.5), transparent 100%),
+    radial-gradient(1.5px 1.5px at 53% 12%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(1px 1px at 62% 8%, rgba(230, 245, 255, 0.55), transparent 100%),
+    radial-gradient(1.3px 1.3px at 70% 18%, rgba(255, 255, 255, 0.65), transparent 100%),
+    radial-gradient(1.6px 1.6px at 78% 10%, rgba(215, 240, 255, 0.7), transparent 100%),
+    radial-gradient(1px 1px at 86% 26%, rgba(255, 255, 255, 0.5), transparent 100%),
+    radial-gradient(1.4px 1.4px at 92% 14%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(1.1px 1.1px at 96% 32%, rgba(220, 240, 255, 0.55), transparent 100%),
+    radial-gradient(1.3px 1.3px at 12% 38%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(1px 1px at 6% 54%, rgba(215, 235, 255, 0.45), transparent 100%),
+    radial-gradient(1.5px 1.5px at 88% 45%, rgba(255, 255, 255, 0.65), transparent 100%),
+    radial-gradient(1px 1px at 74% 34%, rgba(220, 240, 255, 0.5), transparent 100%),
+    radial-gradient(1.2px 1.2px at 40% 30%, rgba(255, 255, 255, 0.45), transparent 100%),
+    radial-gradient(1px 1px at 20% 6%, rgba(255, 255, 255, 0.6), transparent 100%),
+    radial-gradient(1.4px 1.4px at 82% 58%, rgba(220, 240, 255, 0.5), transparent 100%);
+  background-repeat: no-repeat;
+  opacity: 0.55;
+  animation: stars-breathe 11s ease-in-out infinite alternate;
+}
+
+@keyframes stars-breathe {
+  from {
+    opacity: 0.38;
+  }
+  to {
+    opacity: 0.72;
+  }
+}
+
+/* —— 第 1 层：左上角的薄荷绿环境光。
+   冰岛极光的主色是偏冷的绿，这一层负责把整个首屏的色温定下来；
+   右上角补一点点紫，避免绿得发荧光、脱开站点的蓝紫体系。 */
 .hero__blob--1 {
-  top: -12%;
-  left: -14%;
-  width: min(72rem, 105vw);
-  height: min(54rem, 80vw);
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(66, 108, 255, 0.26),
-    rgba(66, 108, 255, 0.085) 42%,
-    transparent 68%
-  );
-  animation: aurora-a 34s var(--ease) infinite alternate;
+  top: -20%;
+  left: -22%;
+  width: min(70rem, 105vw);
+  height: min(48rem, 78vw);
+  background:
+    radial-gradient(56% 70% at 66% 40%, rgba(150, 110, 255, 0.08), transparent 66%),
+    radial-gradient(
+      circle at 45% 48%,
+      rgba(52, 255, 190, 0.1),
+      rgba(40, 205, 190, 0.04) 42%,
+      transparent 68%
+    );
+  animation: aurora-a 24s var(--ease) infinite alternate;
 }
 
+/* —— 第 2 层：右上角的蓝紫余晖。和绿光反向漂移，
+   两块颜色在交界处来回换位置，整片天光就有了"在流动"的感觉。 */
 .hero__blob--2 {
-  top: -14rem;
-  right: -10rem;
-  width: 46rem;
-  height: 46rem;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(140, 84, 255, 0.21),
-    rgba(140, 84, 255, 0.07) 44%,
-    transparent 68%
-  );
-  animation: aurora-b 42s var(--ease) infinite alternate;
+  top: -16rem;
+  right: -14rem;
+  width: 52rem;
+  height: 52rem;
+  background:
+    radial-gradient(58% 58% at 40% 55%, rgba(80, 210, 255, 0.1), transparent 70%),
+    radial-gradient(
+      circle at 55% 45%,
+      rgba(148, 92, 255, 0.19),
+      rgba(148, 92, 255, 0.06) 44%,
+      transparent 70%
+    );
+  animation: aurora-b 32s var(--ease) infinite alternate;
 }
 
+/* —— 第 3 层：主极光帘幕。
+   不是一团圆光，而是一整片被拉长的渐变：横向切成几条绿/青/紫的光带，
+   再叠一层更细的 repeating 条纹，做出帘幕的褶皱。
+   边缘用 radial mask 吃掉，**不靠 filter: blur**——实测 1440px 下
+   大面积 blur + screen 会把首屏压到 20fps；渐变本身就有柔边，
+   去掉滤镜后同屏回到 60fps，褶皱反而更清楚。 */
+.hero__blob--3 {
+  top: -14rem;
+  left: -12%;
+  width: 128%;
+  height: 44rem;
+  background:
+    repeating-linear-gradient(
+      96deg,
+      transparent 0 1.2%,
+      rgba(120, 255, 220, 0.09) 2.1%,
+      rgba(64, 255, 196, 0.16) 3.1%,
+      transparent 4.8%
+    ),
+    linear-gradient(
+      101deg,
+      transparent 3%,
+      rgba(64, 255, 196, 0.1) 8%,
+      rgba(64, 255, 196, 0.02) 11%,
+      rgba(64, 255, 196, 0.24) 15%,
+      rgba(120, 255, 225, 0.06) 18%,
+      rgba(64, 255, 196, 0.03) 22%,
+      rgba(74, 220, 255, 0.22) 28%,
+      rgba(64, 255, 196, 0.05) 32%,
+      transparent 37%,
+      rgba(64, 255, 196, 0.16) 43%,
+      transparent 50%,
+      rgba(150, 110, 255, 0.16) 58%,
+      transparent 67%,
+      rgba(74, 220, 255, 0.1) 74%,
+      transparent 84%
+    );
+  -webkit-mask-image: radial-gradient(
+    58% 76% at 50% 46%,
+    #000 0%,
+    #000 46%,
+    transparent 84%
+  );
+  mask-image: radial-gradient(
+    58% 76% at 50% 46%,
+    #000 0%,
+    #000 46%,
+    transparent 84%
+  );
+  opacity: 0.95;
+  animation: aurora-c 18s var(--ease) infinite alternate;
+}
+
+/* —— 第 4 层：横在标题上方的薄荷绿亮带。
+   它不是背景色，而是一条有走向的极光：中心亮、两端收进黑暗，
+   向左下压着标题的上缘，让「天上有光」这件事在首屏有明确的形状。 */
+.hero__blob--4 {
+  top: -2rem;
+  left: 10%;
+  width: 62%;
+  height: 10rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      50% 55% at 48% 50%,
+      rgba(78, 255, 208, 0.34) 0%,
+      rgba(70, 230, 255, 0.12) 46%,
+      transparent 72%
+    ),
+    linear-gradient(
+      96deg,
+      transparent 0%,
+      rgba(78, 255, 208, 0.1) 30%,
+      transparent 55%,
+      rgba(150, 110, 255, 0.12) 78%,
+      transparent 92%
+    );
+  -webkit-mask-image: radial-gradient(
+    50% 56% at 50% 50%,
+    #000 0%,
+    #000 38%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    50% 56% at 50% 50%,
+    #000 0%,
+    #000 38%,
+    transparent 78%
+  );
+  opacity: 0.9;
+  animation: aurora-d 21s var(--ease) infinite alternate;
+}
+
+/* —— 第 5 层：右侧的青紫薄带。
+   右上角只有紫光会显得平，补一条和主光带相反方向、更慢的斜带，
+   让画面的重心从左侧标题向右上方延伸，也让右侧面板背后有东西可看。 */
+.hero__aurora::after {
+  content: '';
+  position: absolute;
+  top: 4rem;
+  right: -8%;
+  width: 52%;
+  height: 26rem;
+  background: linear-gradient(
+    84deg,
+    transparent 4%,
+    rgba(86, 214, 255, 0.14) 26%,
+    rgba(150, 110, 255, 0.2) 50%,
+    transparent 82%
+  );
+  -webkit-mask-image: radial-gradient(
+    64% 68% at 50% 48%,
+    #000 0%,
+    #000 42%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    64% 68% at 50% 48%,
+    #000 0%,
+    #000 42%,
+    transparent 80%
+  );
+  opacity: 0.75;
+  animation: aurora-e 26s var(--ease) infinite alternate;
+  pointer-events: none;
+}
+
+/* 五层天光刻意用不同的路线和周期：
+   两团面光 24s / 32s 缓慢靠近再退开，主帘幕 18s 横移 + 旋转，
+   上方亮带 21s 侧移，右侧薄带 26s 反向漂移。任意两秒截屏都不会是同一张图，
+   但也不会快到抢走标题的注意力。 */
 @keyframes aurora-a {
   from {
     transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.8;
   }
   to {
-    transform: translate3d(2.5%, 2%, 0) scale(1.035);
+    transform: translate3d(5%, 3%, 0) scale(1.08);
+    opacity: 1;
   }
 }
 
 @keyframes aurora-b {
   from {
-    transform: translate3d(0, 0, 0) scale(1.01);
+    transform: translate3d(0, 0, 0) scale(1.02);
+    opacity: 0.75;
   }
   to {
-    transform: translate3d(-2.5%, 3%, 0) scale(0.985);
+    transform: translate3d(-6%, 4%, 0) scale(0.96);
+    opacity: 1;
+  }
+}
+
+@keyframes aurora-c {
+  from {
+    transform: translate3d(-3%, 0, 0) rotate(-8deg) scale(1.02);
+    opacity: 0.66;
+  }
+  to {
+    transform: translate3d(5%, 2%, 0) rotate(-2deg) scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes aurora-d {
+  from {
+    transform: translate3d(2%, -1%, 0) rotate(5deg) scale(1.03);
+    opacity: 0.7;
+  }
+  to {
+    transform: translate3d(-6%, 3%, 0) rotate(-1deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes aurora-e {
+  from {
+    transform: translate3d(0, 0, 0) rotate(-6deg) scale(1.02);
+    opacity: 0.55;
+  }
+  to {
+    transform: translate3d(-4%, 2%, 0) rotate(-1deg) scale(1.06);
+    opacity: 0.85;
+  }
+}
+
+/* 星点与右侧薄带同样要在滚动 / 离屏时停掉 */
+html.is-scrolling .hero__aurora::after,
+.hero.is-offstage .hero__aurora::after,
+html.is-scrolling .hero__stars,
+.hero.is-offstage .hero__stars {
+  animation-play-state: paused;
+}
+
+/* 小屏：右侧薄带收掉，保留主光带、环境光与星点。
+   「一定要动」在手机上同样成立，只是层数更少。 */
+@media (max-width: 48rem) {
+  .hero__aurora::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__aurora::after,
+  .hero__stars {
+    animation: none;
   }
 }
 
@@ -7414,13 +7659,10 @@ html.is-scrolling .page-hero::before {
   animation-play-state: paused;
 }
 
-/* 小屏 GPU 更紧张，也给更安静的观感：极光停在原地，
-   颗粒压低一档。构图不变，只是不再"呼吸"。 */
+/* 小屏 GPU 更紧张，也给更安静的观感：颗粒压低一档。
+   极光本身不在这里停——手机上也应该看得见它在动，
+   层数与模糊半径已经在 §31.4 的窄屏断点里减过。 */
 @media (max-width: 48rem) {
-  .hero__blob {
-    animation: none;
-  }
-
   .grain {
     opacity: calc(var(--noise-opacity) * 0.72);
   }
