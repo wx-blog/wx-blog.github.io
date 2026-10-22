@@ -95,6 +95,23 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
     <link rel="preload" as="font" type="font/woff2" href="/fonts/noto-sans-sc.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin.woff2" crossorigin />
 
+    {/* 首页首屏的宋体与两张夜空纹理：CSS 里的 background 要等样式表解析完
+        才会被发现，这里提前开始下载，标题和极光不会各晚半拍才出现。
+        其余页面不加载这三份资源。 */}
+    {Astro.url.pathname === '/' && (
+      <>
+        <link
+          rel="preload"
+          as="font"
+          type="font/woff2"
+          href="/fonts/noto-serif-sc.woff2"
+          crossorigin
+        />
+        <link rel="preload" as="image" href="/textures/sky.webp" fetchpriority="high" />
+        <link rel="preload" as="image" href="/textures/aurora.webp" fetchpriority="high" />
+      </>
+    )}
+
     {/* 浏览器 UI 配色（移动端状态栏 / 桌面地址栏）：
         站点只有暗色，所以不再按系统偏好给两个值 —— 直接锁成
         站点底色 #050509（与 --bg 一致）。

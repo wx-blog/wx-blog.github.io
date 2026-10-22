@@ -204,6 +204,10 @@
   --font-sans: 'Inter Variable', 'Noto Sans SC Subset', -apple-system,
     BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', Roboto, sans-serif;
+  /* 首屏标题专用的宋体：和极光的自然感、纵向光帘的衬线节奏对齐。
+     正文仍然全部用无衬线，避免整站变成"文艺杂志"。 */
+  --font-serif: 'Noto Serif SC Subset', 'Songti SC', 'Noto Serif SC',
+    'Source Han Serif SC', SimSun, serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
     'Liberation Mono', 'Courier New', monospace;
 
@@ -4799,56 +4803,6 @@ a.tag:hover {
   }
 }
 
-/* 地平线：一团贴底的紫光 + 两条大弧。
-   弧线用超宽椭圆的 border-top 实现，只有顶部一段落在画面里，
-   所以读起来像"地平线"而不是两个圆圈。 */
-.hero__horizon {
-  position: absolute;
-  inset: auto 0 0 0;
-  z-index: 0;
-  height: min(44rem, 78vh);
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.hero__horizon::before {
-  content: '';
-  position: absolute;
-  bottom: -18rem;
-  left: 50%;
-  width: min(90rem, 140vw);
-  height: 32rem;
-  transform: translateX(-50%);
-  background: radial-gradient(
-    closest-side,
-    rgba(124, 58, 237, 0.42),
-    rgba(124, 58, 237, 0.15) 48%,
-    rgba(124, 58, 237, 0) 72%
-  );
-  opacity: 0.75;
-}
-
-.hero__arc {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  aspect-ratio: 2 / 1;
-  border: 1px solid rgba(185, 167, 255, 0.13);
-  border-bottom: 0;
-  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-}
-
-.hero__arc--1 {
-  width: min(118rem, 150vw);
-  transform: translate(-50%, 46%);
-}
-
-.hero__arc--2 {
-  width: min(86rem, 110vw);
-  transform: translate(-50%, 34%);
-  border-color: rgba(185, 167, 255, 0.18);
-}
-
 /* 首屏入场：标题/导语沿用旧规则，新增的索引行与右栏补上同一节奏。
    CSS 默认仍是最终态，只有 JS 挂上 .is-entering 才从下方 18px 淡入。 */
 .hero__start,
@@ -5789,313 +5743,97 @@ button:focus-visible {
   isolation: isolate;
 }
 
+/* 夜空是构建期生成的位图，不用 CSS 渐变硬拼：
+   多层径向渐变再叠也做不出真实极光的细竖纹和折叠边缘，
+   而大面积 filter: blur 会把首屏压到 20fps 左右。
+   sky 负责星点、地平线光污染和远处城镇，静态；
+   curtain 是带 alpha 的极光帘幕，只做一层 220s 的漂移。 */
 .hero__aurora {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
-  /* 画布边界交给 contain，里面的 blob 再怎么漂也不会让浏览器
-     把失效范围算到首屏之外 */
   contain: paint;
   pointer-events: none;
-  /* 让几层极光在容器内部合成；不用 mix-blend-mode：
-     实测 screen 混合 + 大面积 filter 会把 1440px 首屏压到 20fps 左右。
-     这里全部走普通 alpha 叠加，亮度靠渐变本身的 alpha 控制。 */
+  background: #03060c url('/textures/sky.webp') center bottom / cover no-repeat;
   isolation: isolate;
 }
 
-.hero__blob {
-  position: absolute;
-  display: block;
-  border-radius: 50%;
-  /* 不再常驻 will-change：动画期间浏览器本来就会为它们建层，
-     而首屏滚过去之后这两个层没有理由一直占着显存。 */
-  will-change: auto;
-}
-
-/* 星点：极光如果没有夜空做参照，只是一块绿色渐变。
-   点不能大、不能密——1~1.5px、二十来颗、整体半透明，
-   只在余光里闪，不参与构图。位置刻意避开标题正后方。 */
-.hero__stars {
+.hero__curtain {
   position: absolute;
   inset: 0;
-  background-image:
-    radial-gradient(1.4px 1.4px at 8% 12%, rgba(255, 255, 255, 0.85), transparent 100%),
-    radial-gradient(1.2px 1.2px at 16% 26%, rgba(210, 235, 255, 0.6), transparent 100%),
-    radial-gradient(1.6px 1.6px at 24% 9%, rgba(255, 255, 255, 0.7), transparent 100%),
-    radial-gradient(1px 1px at 30% 18%, rgba(220, 240, 255, 0.55), transparent 100%),
-    radial-gradient(1.4px 1.4px at 38% 7%, rgba(255, 255, 255, 0.65), transparent 100%),
-    radial-gradient(1.1px 1.1px at 47% 21%, rgba(210, 235, 255, 0.5), transparent 100%),
-    radial-gradient(1.5px 1.5px at 53% 12%, rgba(255, 255, 255, 0.75), transparent 100%),
-    radial-gradient(1px 1px at 62% 8%, rgba(230, 245, 255, 0.55), transparent 100%),
-    radial-gradient(1.3px 1.3px at 70% 18%, rgba(255, 255, 255, 0.65), transparent 100%),
-    radial-gradient(1.6px 1.6px at 78% 10%, rgba(215, 240, 255, 0.7), transparent 100%),
-    radial-gradient(1px 1px at 86% 26%, rgba(255, 255, 255, 0.5), transparent 100%),
-    radial-gradient(1.4px 1.4px at 92% 14%, rgba(255, 255, 255, 0.75), transparent 100%),
-    radial-gradient(1.1px 1.1px at 96% 32%, rgba(220, 240, 255, 0.55), transparent 100%),
-    radial-gradient(1.3px 1.3px at 12% 38%, rgba(255, 255, 255, 0.6), transparent 100%),
-    radial-gradient(1px 1px at 6% 54%, rgba(215, 235, 255, 0.45), transparent 100%),
-    radial-gradient(1.5px 1.5px at 88% 45%, rgba(255, 255, 255, 0.65), transparent 100%),
-    radial-gradient(1px 1px at 74% 34%, rgba(220, 240, 255, 0.5), transparent 100%),
-    radial-gradient(1.2px 1.2px at 40% 30%, rgba(255, 255, 255, 0.45), transparent 100%),
-    radial-gradient(1px 1px at 20% 6%, rgba(255, 255, 255, 0.6), transparent 100%),
-    radial-gradient(1.4px 1.4px at 82% 58%, rgba(220, 240, 255, 0.5), transparent 100%);
-  background-repeat: no-repeat;
-  opacity: 0.55;
-  animation: stars-breathe 11s ease-in-out infinite alternate;
+  display: block;
+  background: url('/textures/aurora.webp') center bottom / cover no-repeat;
+  transform: scale(1.075) translate3d(0, 0, 0);
+  transform-origin: 46% 38%;
+  opacity: 0.96;
+  will-change: transform;
+  animation: aurora-drift 220s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
 }
 
-@keyframes stars-breathe {
+@keyframes aurora-drift {
   from {
-    opacity: 0.38;
+    transform: scale(1.065) translate3d(-1.1%, 0.7%, 0);
+    opacity: 0.86;
   }
   to {
-    opacity: 0.72;
+    transform: scale(1.095) translate3d(1.2%, -0.6%, 0);
+    opacity: 1;
   }
 }
 
-/* —— 第 1 层：左上角的薄荷绿环境光。
-   冰岛极光的主色是偏冷的绿，这一层负责把整个首屏的色温定下来；
-   右上角补一点点紫，避免绿得发荧光、脱开站点的蓝紫体系。 */
-.hero__blob--1 {
-  top: -20%;
-  left: -22%;
-  width: min(70rem, 105vw);
-  height: min(48rem, 78vw);
-  background:
-    radial-gradient(56% 70% at 66% 40%, rgba(150, 110, 255, 0.08), transparent 66%),
-    radial-gradient(
-      circle at 45% 48%,
-      rgba(52, 255, 190, 0.1),
-      rgba(40, 205, 190, 0.04) 42%,
-      transparent 68%
-    );
-  animation: aurora-a 24s var(--ease) infinite alternate;
-}
-
-/* —— 第 2 层：右上角的蓝紫余晖。和绿光反向漂移，
-   两块颜色在交界处来回换位置，整片天光就有了"在流动"的感觉。 */
-.hero__blob--2 {
-  top: -16rem;
-  right: -14rem;
-  width: 52rem;
-  height: 52rem;
-  background:
-    radial-gradient(58% 58% at 40% 55%, rgba(80, 210, 255, 0.1), transparent 70%),
-    radial-gradient(
-      circle at 55% 45%,
-      rgba(148, 92, 255, 0.19),
-      rgba(148, 92, 255, 0.06) 44%,
-      transparent 70%
-    );
-  animation: aurora-b 32s var(--ease) infinite alternate;
-}
-
-/* —— 第 3 层：主极光帘幕。
-   不是一团圆光，而是一整片被拉长的渐变：横向切成几条绿/青/紫的光带，
-   再叠一层更细的 repeating 条纹，做出帘幕的褶皱。
-   边缘用 radial mask 吃掉，**不靠 filter: blur**——实测 1440px 下
-   大面积 blur + screen 会把首屏压到 20fps；渐变本身就有柔边，
-   去掉滤镜后同屏回到 60fps，褶皱反而更清楚。 */
-.hero__blob--3 {
-  top: -14rem;
-  left: -12%;
-  width: 128%;
-  height: 44rem;
-  background:
-    repeating-linear-gradient(
-      96deg,
-      transparent 0 1.2%,
-      rgba(120, 255, 220, 0.09) 2.1%,
-      rgba(64, 255, 196, 0.16) 3.1%,
-      transparent 4.8%
-    ),
-    linear-gradient(
-      101deg,
-      transparent 3%,
-      rgba(64, 255, 196, 0.1) 8%,
-      rgba(64, 255, 196, 0.02) 11%,
-      rgba(64, 255, 196, 0.24) 15%,
-      rgba(120, 255, 225, 0.06) 18%,
-      rgba(64, 255, 196, 0.03) 22%,
-      rgba(74, 220, 255, 0.22) 28%,
-      rgba(64, 255, 196, 0.05) 32%,
-      transparent 37%,
-      rgba(64, 255, 196, 0.16) 43%,
-      transparent 50%,
-      rgba(150, 110, 255, 0.16) 58%,
-      transparent 67%,
-      rgba(74, 220, 255, 0.1) 74%,
-      transparent 84%
-    );
-  -webkit-mask-image: radial-gradient(
-    58% 76% at 50% 46%,
-    #000 0%,
-    #000 46%,
-    transparent 84%
-  );
-  mask-image: radial-gradient(
-    58% 76% at 50% 46%,
-    #000 0%,
-    #000 46%,
-    transparent 84%
-  );
-  opacity: 0.95;
-  animation: aurora-c 18s var(--ease) infinite alternate;
-}
-
-/* —— 第 4 层：横在标题上方的薄荷绿亮带。
-   它不是背景色，而是一条有走向的极光：中心亮、两端收进黑暗，
-   向左下压着标题的上缘，让「天上有光」这件事在首屏有明确的形状。 */
-.hero__blob--4 {
-  top: -2rem;
-  left: 10%;
-  width: 62%;
-  height: 10rem;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      50% 55% at 48% 50%,
-      rgba(78, 255, 208, 0.34) 0%,
-      rgba(70, 230, 255, 0.12) 46%,
-      transparent 72%
-    ),
-    linear-gradient(
-      96deg,
-      transparent 0%,
-      rgba(78, 255, 208, 0.1) 30%,
-      transparent 55%,
-      rgba(150, 110, 255, 0.12) 78%,
-      transparent 92%
-    );
-  -webkit-mask-image: radial-gradient(
-    50% 56% at 50% 50%,
-    #000 0%,
-    #000 38%,
-    transparent 78%
-  );
-  mask-image: radial-gradient(
-    50% 56% at 50% 50%,
-    #000 0%,
-    #000 38%,
-    transparent 78%
-  );
-  opacity: 0.9;
-  animation: aurora-d 21s var(--ease) infinite alternate;
-}
-
-/* —— 第 5 层：右侧的青紫薄带。
-   右上角只有紫光会显得平，补一条和主光带相反方向、更慢的斜带，
-   让画面的重心从左侧标题向右上方延伸，也让右侧面板背后有东西可看。 */
-.hero__aurora::after {
-  content: '';
+/* 大气纱幕：标题区压暗一档，让白色宋体始终有足够的局部对比；
+   其余区域尽量留亮，极光的亮部才有"从远处透过来"的空气感。 */
+.hero__veil {
   position: absolute;
-  top: 4rem;
-  right: -8%;
-  width: 52%;
-  height: 26rem;
-  background: linear-gradient(
-    84deg,
-    transparent 4%,
-    rgba(86, 214, 255, 0.14) 26%,
-    rgba(150, 110, 255, 0.2) 50%,
-    transparent 82%
-  );
-  -webkit-mask-image: radial-gradient(
-    64% 68% at 50% 48%,
-    #000 0%,
-    #000 42%,
-    transparent 80%
-  );
-  mask-image: radial-gradient(
-    64% 68% at 50% 48%,
-    #000 0%,
-    #000 42%,
-    transparent 80%
-  );
-  opacity: 0.75;
-  animation: aurora-e 26s var(--ease) infinite alternate;
+  inset: 0;
+  z-index: 2;
   pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(3, 6, 12, 0.42) 0%,
+      rgba(3, 6, 12, 0.22) 24%,
+      rgba(3, 6, 12, 0.03) 44%,
+      transparent 58%
+    ),
+    radial-gradient(54% 48% at 29% 54%, rgba(3, 6, 12, 0.3), transparent 74%),
+    linear-gradient(
+      180deg,
+      rgba(3, 6, 12, 0.16) 0%,
+      transparent 10%,
+      transparent 70%,
+      rgba(4, 7, 12, 0.18) 84%,
+      rgba(4, 7, 12, 0.52) 100%
+    );
 }
 
-/* 五层天光刻意用不同的路线和周期：
-   两团面光 24s / 32s 缓慢靠近再退开，主帘幕 18s 横移 + 旋转，
-   上方亮带 21s 侧移，右侧薄带 26s 反向漂移。任意两秒截屏都不会是同一张图，
-   但也不会快到抢走标题的注意力。 */
-@keyframes aurora-a {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.8;
-  }
-  to {
-    transform: translate3d(5%, 3%, 0) scale(1.08);
-    opacity: 1;
-  }
+/* 一层极细的胶片颗粒。贴图是 128px 的随机噪点，静态、不参与动画；
+   在没有 blur 的前提下，它比任何渐变都更能去掉"塑料感"。 */
+.hero__grain {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: url('/textures/grain.png') 0 0 / 128px 128px;
+  opacity: 0.16;
 }
 
-@keyframes aurora-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1.02);
-    opacity: 0.75;
-  }
-  to {
-    transform: translate3d(-6%, 4%, 0) scale(0.96);
-    opacity: 1;
-  }
-}
-
-@keyframes aurora-c {
-  from {
-    transform: translate3d(-3%, 0, 0) rotate(-8deg) scale(1.02);
-    opacity: 0.66;
-  }
-  to {
-    transform: translate3d(5%, 2%, 0) rotate(-2deg) scale(1.06);
-    opacity: 1;
-  }
-}
-
-@keyframes aurora-d {
-  from {
-    transform: translate3d(2%, -1%, 0) rotate(5deg) scale(1.03);
-    opacity: 0.7;
-  }
-  to {
-    transform: translate3d(-6%, 3%, 0) rotate(-1deg) scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes aurora-e {
-  from {
-    transform: translate3d(0, 0, 0) rotate(-6deg) scale(1.02);
-    opacity: 0.55;
-  }
-  to {
-    transform: translate3d(-4%, 2%, 0) rotate(-1deg) scale(1.06);
-    opacity: 0.85;
-  }
-}
-
-/* 星点与右侧薄带同样要在滚动 / 离屏时停掉 */
-html.is-scrolling .hero__aurora::after,
-.hero.is-offstage .hero__aurora::after,
-html.is-scrolling .hero__stars,
-.hero.is-offstage .hero__stars {
+html.is-scrolling .hero__curtain,
+.hero.is-offstage .hero__curtain {
   animation-play-state: paused;
 }
 
-/* 小屏：右侧薄带收掉，保留主光带、环境光与星点。
-   「一定要动」在手机上同样成立，只是层数更少。 */
+/* 小屏按主帘幕所在的位置取景，而不是机械地取整张图的正中。 */
 @media (max-width: 48rem) {
-  .hero__aurora::after {
-    display: none;
+  .hero__aurora,
+  .hero__curtain {
+    background-position: 22% bottom;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hero__aurora::after,
-  .hero__stars {
+  .hero__curtain {
     animation: none;
   }
 }
@@ -6528,28 +6266,6 @@ html.is-scrolling .hero__stars,
   border-color: rgba(168, 146, 255, 0.4);
   background: rgba(118, 94, 255, 0.1);
   color: var(--text);
-}
-
-.hero__horizon {
-  height: min(40rem, 70vh);
-  /* 地平线贴着首屏底边裁切。不做收尾的话，滚到首屏末端时
-     紫光会在一条水平线上突然消失，看起来像半块矩形。
-     用遮罩淡掉最下面 38%：首屏内的光不受影响，越过首屏自然熄掉。 */
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0%, #000 62%, transparent 100%);
-}
-
-.hero__horizon::before {
-  bottom: -20rem;
-  width: min(110rem, 170vw);
-  height: 40rem;
-  background: radial-gradient(
-    closest-side,
-    rgba(64, 112, 255, 0.34),
-    rgba(112, 78, 255, 0.14) 46%,
-    transparent 72%
-  );
-  opacity: 0.85;
 }
 
 /* 新元素的入场节奏，和标题/导语共用同一条时间线 */
@@ -6992,7 +6708,6 @@ a.tag:hover {
 /* ---------- 31.9 减少动态效果 ---------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .hero__blob,
   .hero__eyebrow-spark,
   .hero__aside-dot,
   .hero__title .grad-text {
@@ -7641,7 +7356,6 @@ html.is-scrolling .site-header {
 
 /* 这些动画不会"演完"，只要在视口里就一直跑。
    滚动期间统一暂停，停手后自动续上——看起来只是光变安静了一点。 */
-html.is-scrolling .hero__blob,
 html.is-scrolling .hero__eyebrow-spark,
 html.is-scrolling .hero__aside-dot,
 html.is-scrolling .hero__scroll-arrow,
@@ -7651,7 +7365,6 @@ html.is-scrolling .page-hero::before {
 
 /* 滚出视口后同样没有继续合成的理由。
    JS 通过 IntersectionObserver 给容器挂 .is-offstage（见 BaseLayout）。 */
-.hero.is-offstage .hero__blob,
 .hero.is-offstage .hero__eyebrow-spark,
 .hero.is-offstage .hero__aside-dot,
 .hero.is-offstage .hero__scroll-arrow,
@@ -7895,7 +7608,6 @@ html.is-scrolling .page-hero::before {
     transition: none;
   }
 
-  .hero__blob,
   .page-hero::before {
     animation: none;
   }
@@ -8106,4 +7818,120 @@ html.is-scrolling .card {
       radial-gradient(120% 150% at 0% 0%, rgba(124, 58, 237, 0.16), transparent 55%),
       color-mix(in srgb, var(--bg) 92%, white);
   }
+}
+
+/* ==========================================================================
+   33.11 首屏排版：宋体标题与极光的质感对齐
+
+   之前的大标题是粗无衬线，笔画和极光的细竖纹属于两种语言：
+   一个在"压"，一个在"飘"。换思源宋体不是复古，而是让横竖笔画的
+   粗细对比去接极光的明暗层次；正文继续用无衬线，保证技术内容的可读性。
+   字号只比原来小 1%，但去掉负字距，宋体的字面反而更挺。
+
+   字体文件只在首页被实际使用，其他页面不会下载。
+   ========================================================================== */
+
+.hero__title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  /* 5.28rem 是按 1440 下左栏 691px、第二行 8 个汉字反推的上限：
+     再大 2px，最后一个「记」就会掉到第三行。 */
+  font-size: clamp(2.05rem, 0.8rem + 5.62vw, 5.28rem);
+  line-height: 1.15;
+  letter-spacing: 0.008em;
+  text-wrap: initial;
+  background-image: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    rgba(244, 248, 255, 0.92) 56%,
+    rgba(209, 222, 240, 0.8) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.hero__title .grad-text {
+  /* 与夜空同源的四个色相：薄荷、冰蓝、丁香、霞粉。
+     比原来的蓝紫粉更亮、更像大气发光，而不是霓虹灯。 */
+  background-image: linear-gradient(
+    100deg,
+    #bfffe7 0%,
+    #8fe6ff 30%,
+    #c3b2ff 64%,
+    #ffb7d5 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* 欢迎语也交给宋体：它是标题之前的一句"人话"，
+   用同一种笔画才有承接，不会像一条系统提示。 */
+.hero__welcome {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(1.05rem, 0.9rem + 0.55vw, 1.4rem);
+  letter-spacing: 0.08em;
+  color: rgba(234, 231, 244, 0.78);
+}
+
+.hero__welcome-name {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  text-shadow: 0 0 24px rgba(170, 210, 255, 0.38);
+}
+
+/* 矮视口仍要收一档，避免宋体把首屏顶出屏幕 */
+@media (max-height: 780px) {
+  .hero__title {
+    font-size: clamp(1.9rem, 0.75rem + 4.9vw, 4.35rem);
+  }
+}
+
+/* 320px 左右的窄屏：宋体字面更宽，再收 0.1rem 保证「笔记」不掉行 */
+@media (max-width: 23rem) {
+  .hero__title {
+    font-size: clamp(1.95rem, 0.7rem + 5.4vw, 2.2rem);
+    letter-spacing: 0;
+  }
+
+  .hero__welcome {
+    letter-spacing: 0.045em;
+  }
+}
+
+/* ---------- 33.12 让文字从极光里"浮"出来 ----------
+
+   程序化纹理的亮度分布不再可控：右栏正好落在主帘幕上，底部索引又压着
+   城市灯光，欢迎语和标签也擦过高光边缘。解决办法不是把整片夜空压暗，
+   而是只给承载文字的地方加"底"：
+     1) 右栏换成深色玻璃，紫色只留在左上角当反射；
+     2) 欢迎语、标签、底部索引用一层很淡的暗色投影托住；
+     3) 页面最底部补一道向上的暗角，城市灯光沉到边缘后面。
+   极光本身不动，亮的地方仍然亮。 */
+
+.hero__aside {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(130% 110% at 0% 0%, rgba(116, 92, 255, 0.2), transparent 56%),
+    linear-gradient(180deg, rgba(9, 14, 25, 0.82) 0%, rgba(7, 11, 20, 0.7) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 24px 56px -36px rgba(0, 0, 0, 0.92),
+    0 48px 110px -64px rgba(86, 68, 220, 0.68);
+}
+
+.hero__aside::before {
+  opacity: 0.55;
+}
+
+.hero__eyebrow,
+.hero__welcome-text,
+.hero__foot {
+  text-shadow: 0 1px 14px rgba(3, 6, 12, 0.92);
+}
+
+/* 城市灯光退到边缘之后，底部索引也不再是"贴纸"，提高一档文字颜色。 */
+.hero__scroll {
+  color: var(--text-muted);
 }

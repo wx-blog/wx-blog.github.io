@@ -21,3 +21,14 @@
   font-display: swap;
   src: url('/fonts/noto-sans-sc.woff2') format('woff2-variations');
 }
+
+/* 中文字形：思源宋体可变版本，只服务首屏标题与欢迎语。
+   子集只包含这两段文案用到的那几十个字（约 75KB，而不是整站字库的 700KB）；
+   浏览器按需下载——非首页没有元素用到这个 family，就不会请求它。 */
+@font-face {
+  font-family: 'Noto Serif SC Subset';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/fonts/noto-serif-sc.woff2') format('woff2-variations');
+}

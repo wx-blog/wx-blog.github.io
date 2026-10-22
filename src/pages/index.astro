@@ -26,27 +26,23 @@ const recommended =
 
 <BaseLayout>
   <!--
-    首屏：一块会呼吸的极光背景 + 一个真正能用的搜索框。
+    首屏：一片有地平线的冰岛夜空 + 一个真正能用的搜索框。
     ------------------------------------------------------------
-    构图仍然是「左内容 / 右说明」，但材质整体换代：
-      · 纯黑底上放五层低速漂移的极光——薄荷绿、青蓝、蓝紫——
-        两团面光、一层带竖向褶皱的帘幕、一条主光带和一条右侧薄带，
-        加一层很淡的星点，各自错速漂移；
-      · 标题里三个字走蓝→紫→粉的渐变，不靠再加一层装饰；
-      · 搜索框直接提交到 /search/，不是摆设；
-      · 标签、统计、入口全部收进大圆角面板，和 AI 工具的工作台一致。
-
-    动效只碰 transform / opacity；极光刻意不用 filter: blur 与
-    mix-blend-mode，改用渐变自带的柔边——1440px 下同屏能稳在 60fps。
-    滚动期间与首屏滚出视口后，这些动画会自动暂停（见 global.css）。
+    极光不再用 CSS 渐变硬拼。它是一张构建期算出来的纹理：
+      · sky.webp：夜空、星点、地平线的暖色光污染和远处城镇的灯；
+      · aurora.webp：带透明通道的极光帘幕，细竖纹、折叠的高光边缘、
+        顶部偏青紫的色相，全部由噪声场生成，而不是等距条纹。
+    两层都是 2800×1200，cover + bottom 对齐，宽屏不裁掉地平线，
+    手机端用 background-position 选取主帘幕所在的那一段。
+    运动只有一层 220s 的 transform/opacity 漂移：慢到像呼吸，
+    但任意两秒截屏都不会完全相同。静态层不用 filter / mix-blend-mode，
+    滚动期间和离屏后暂停，1440px 下仍稳在 60fps。
   -->
   <section class="hero">
     <div class="hero__aurora" aria-hidden="true">
-      <span class="hero__stars"></span>
-      <span class="hero__blob hero__blob--1"></span>
-      <span class="hero__blob hero__blob--2"></span>
-      <span class="hero__blob hero__blob--3"></span>
-      <span class="hero__blob hero__blob--4"></span>
+      <span class="hero__curtain"></span>
+      <span class="hero__veil"></span>
+      <span class="hero__grain"></span>
     </div>
     <div class="hero__spot" data-hero-spot aria-hidden="true"></div>
 
@@ -168,8 +164,6 @@ const recommended =
         <span aria-hidden="true">↗</span>
       </a>
     </div>
-
-    <div class="hero__horizon" aria-hidden="true"></div>
   </section>
 
   <section class="section" id="latest">
