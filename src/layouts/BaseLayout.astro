@@ -924,38 +924,100 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
           });
         };
 
-        /* ---------- 首屏光标光斑：一个 40rem 的渐变圆跟着指针平移 ---------- */
+        /* ---------- 首屏：光标环境光 + 极光视差 ----------
+           光斑不再贴死在指针上，而是每帧插值 0.14 追过去，
+           大约半秒收敛；停下来时光会自己滑一小段，像环境光。
+           极光容器反向位移最多 14px / 9px，比光斑慢一倍，
+           前后景这才分开；两组都只写 transform，不进布局。 */
         const setupSpot = () => {
           const hero = document.querySelector('.hero');
           const spot = hero?.querySelector('[data-hero-spot]');
+          const curtains = hero?.querySelector('[data-hero-curtains]');
           if (!hero || !spot || reduce) return;
           if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
           if (hero.dataset.spotBound === '1') return;
           hero.dataset.spotBound = '1';
 
           let raf = 0;
-          let x = 0;
-          let y = 0;
+          let spotX = 0;
+          let spotY = 0;
+          let spotTX = 0;
+          let spotTY = 0;
+          let depthX = 0;
+          let depthY = 0;
+          let depthTX = 0;
+          let depthTY = 0;
+          let primed = false;
+
+          const tick = () => {
+            raf = 0;
+            spotX += (spotTX - spotX) * 0.14;
+            spotY += (spotTY - spotY) * 0.14;
+            depthX += (depthTX - depthX) * 0.055;
+            depthY += (depthTY - depthY) * 0.055;
+            spot.style.transform = `translate3d(${spotX.toFixed(2)}px, ${spotY.toFixed(2)}px, 0)`;
+            if (curtains) {
+              curtains.style.transform = `translate3d(${depthX.toFixed(2)}px, ${depthY.toFixed(2)}px, 0)`;
+            }
+            const busy =
+              Math.abs(spotTX - spotX) > 0.2 ||
+              Math.abs(spotTY - spotY) > 0.2 ||
+              Math.abs(depthTX - depthX) > 0.1 ||
+              Math.abs(depthTY - depthY) > 0.1;
+            if (busy) raf = requestAnimationFrame(tick);
+          };
+
+          const schedule = () => {
+            if (!raf) raf = requestAnimationFrame(tick);
+          };
 
           hero.addEventListener(
             'pointermove',
             (event) => {
               const rect = hero.getBoundingClientRect();
-              x = event.clientX - rect.left;
-              y = event.clientY - rect.top;
+              spotTX = event.clientX - rect.left;
+              spotTY = event.clientY - rect.top;
+              const nx = (spotTX / rect.width) * 2 - 1;
+              const ny = (spotTY / rect.height) * 2 - 1;
+              depthTX = -nx * 14;
+              depthTY = -ny * 9;
+              // 第一次移动直接落位，避免光斑从左上角滑进来。
+              if (!primed) {
+                primed = true;
+                spotX = spotTX;
+                spotY = spotTY;
+                spot.style.transform = `translate3d(${spotX}px, ${spotY}px, 0)`;
+              }
               spot.classList.add('is-on');
-              if (raf) return;
-              raf = requestAnimationFrame(() => {
-                raf = 0;
-                spot.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-              });
+              schedule();
             },
             { passive: true },
           );
 
           hero.addEventListener('pointerleave', () => {
             spot.classList.remove('is-on');
+            depthTX = 0;
+            depthTY = 0;
+            schedule();
           });
+        };
+
+        /* ---------- 首屏搜索框的示例占位 ----------
+           手机上输入框只剩 200 出头像素，整句示例会被裁在半个字母上。
+           给带 data-placeholder-mobile 的输入框换一版更短的；
+           监听器只绑一次，换页后重新查节点。 */
+        const setupSearchHint = () => {
+          const mq = window.matchMedia('(max-width: 48rem)');
+          const sync = () => {
+            for (const input of document.querySelectorAll('[data-search-input][data-placeholder-mobile]')) {
+              const next = mq.matches ? input.dataset.placeholderMobile : input.dataset.placeholderFull;
+              if (next && input.placeholder !== next) input.placeholder = next;
+            }
+          };
+          sync();
+          if (window.__searchHintBound) return;
+          window.__searchHintBound = true;
+          mq.addEventListener('change', sync);
         };
 
         /* ---------- 卡片聚光：把指针位置写进 CSS 变量，由 ::after 画出来 ---------- */
@@ -1114,6 +1176,7 @@ const jsonLdText = JSON.stringify(jsonLd ?? websiteJsonLd).replace(/</g, '\\u003
         const init = () => {
           setupCounters();
           setupSpot();
+          setupSearchHint();
           setupCards();
           setupAura();
           setupTilt();

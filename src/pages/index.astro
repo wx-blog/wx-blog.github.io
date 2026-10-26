@@ -36,13 +36,17 @@ const recommended =
     手机端用 background-position 选取主帘幕所在的那一段。
     运动是 48s 一轮的 opacity 交叉淡化 + 各不相同的慢速 transform 漂移：
     亮边缓慢换位置、竖纹起伏，但不会像整张照片在平移。
+    桌面端再给整组帘幕挂一层 ±14px 的指针视差，和带惯性的光标环境光配合，
+    前后景分离；移动端与减少动态效果时不绑定。
     全程不碰 filter / mix-blend-mode，滚动期间和离屏后暂停。
   -->
   <section class="hero">
     <div class="hero__aurora" aria-hidden="true">
-      <span class="hero__curtain hero__curtain--a"></span>
-      <span class="hero__curtain hero__curtain--b"></span>
-      <span class="hero__curtain hero__curtain--c"></span>
+      <div class="hero__curtains" data-hero-curtains>
+        <span class="hero__curtain hero__curtain--a"></span>
+        <span class="hero__curtain hero__curtain--b"></span>
+        <span class="hero__curtain hero__curtain--c"></span>
+      </div>
       <span class="hero__veil"></span>
       <span class="hero__grain"></span>
     </div>
@@ -80,6 +84,8 @@ const recommended =
             name="q"
             data-search-input
             placeholder="搜索笔记：LVM、firewalld、Ceph、Ansible…"
+            data-placeholder-full="搜索笔记：LVM、firewalld、Ceph、Ansible…"
+            data-placeholder-mobile="搜索笔记：LVM、Ceph…"
             autocomplete="off"
             spellcheck="false"
             aria-label="搜索文章"

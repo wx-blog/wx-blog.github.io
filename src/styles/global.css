@@ -5763,6 +5763,18 @@ button:focus-visible {
   isolation: isolate;
 }
 
+/* 三层帘幕先包进一个容器，指针视差只移动容器。
+   每层自己的 48/56/64s 漂移不变，两组 transform 相加；
+   位移上限 ±14px，远小于各层 ≥5.8% 的缩放余量，不会露出边缘。 */
+.hero__curtains {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+}
+
 .hero__curtain {
   position: absolute;
   inset: 0;
