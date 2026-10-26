@@ -1,0 +1,646 @@
+/* ---------- 实验台 /lab/ ----------
+   只在这一页加载。终端里的行是 JS 动态插入的，
+   所以样式放在独立的全局文件里，不能依赖 Astro 的 scoped 编译。 */
+
+/* 首屏文案 */
+.lab-hero__title {
+  max-width: 20ch;
+}
+
+.lab-hero__lede {
+  margin-top: clamp(1rem, 2vw, 1.4rem);
+}
+
+.lab-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  margin-top: clamp(1.25rem, 2.5vw, 1.75rem);
+  font: 400 0.68rem/1.6 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.lab-hero__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lab-hero__meta span::before {
+  content: '';
+  width: 0.3rem;
+  height: 0.3rem;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+/* 主体网格：左导航 + 右终端 */
+.lab {
+  display: grid;
+  grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+  grid-template-areas:
+    'levels terminal'
+    'goals terminal';
+  gap: 1.25rem 1.75rem;
+  align-items: start;
+  padding-block: clamp(1.75rem, 3vw, 2.75rem) clamp(3rem, 6vw, 5rem);
+}
+
+.lab__levels {
+  grid-area: levels;
+  min-width: 0;
+}
+
+.lab__goals {
+  grid-area: goals;
+  min-width: 0;
+}
+
+.lab__label {
+  margin: 0;
+  font: 500 0.62rem/1 var(--font-mono);
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+}
+
+/* 关卡列表 */
+.lab-tabs {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.lab-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.25s var(--ease),
+    background-color 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+
+.lab-tab:hover {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.028);
+  color: var(--text);
+}
+
+.lab-tab[aria-selected='true'] {
+  border-color: var(--glass-border-hover);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.062), rgba(255, 255, 255, 0.018));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.lab-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lab-tab__index {
+  flex: none;
+  font: 500 0.68rem/1 var(--font-mono);
+  color: var(--text-faint);
+}
+
+.lab-tab[aria-selected='true'] .lab-tab__index {
+  color: var(--accent);
+}
+
+.lab-tab__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.lab-tab__kicker {
+  font: 400 0.58rem/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+.lab-tab__title {
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.lab-tab__state {
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-left: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  transition:
+    background-color 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+
+.lab-tab__state.is-done {
+  border-color: #8fc7a6;
+  background: #8fc7a6;
+  box-shadow: 0 0 10px rgba(143, 199, 166, 0.45);
+}
+
+/* 目标面板 */
+.lab__goals {
+  padding: 1rem 1.05rem 1.1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.012));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.lab-goals__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lab-goals__count {
+  font: 500 0.7rem/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.lab-goals {
+  display: grid;
+  gap: 0;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lab-goals li {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.62rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  transition: color 0.25s var(--ease);
+}
+
+.lab-goals li:first-child {
+  border-top: 0;
+}
+
+.lab-goals__dot {
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-top: 0.4rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  transition:
+    background-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
+}
+
+.lab-goals li.is-done {
+  color: var(--text);
+}
+
+.lab-goals li.is-done .lab-goals__dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.lab-actions {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.95rem;
+}
+
+.lab-actions button {
+  flex: 1;
+  padding: 0.52rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.lab-actions button:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.lab-link {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  color: inherit;
+  text-decoration: none;
+}
+
+.lab-link[hidden] {
+  display: none;
+}
+
+.lab-link span {
+  font: 400 0.58rem/1 var(--font-mono);
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+.lab-link strong {
+  font-size: 0.8rem;
+  font-weight: 450;
+  line-height: 1.5;
+  color: var(--text-muted);
+  transition: color 0.2s var(--ease);
+}
+
+.lab-link:hover strong {
+  color: var(--accent);
+}
+
+/* 通关面板 */
+.lab-done {
+  margin-top: 0.95rem;
+  padding: 0.85rem 0.9rem 0.95rem;
+  border: 1px solid rgba(108, 180, 224, 0.34);
+  border-radius: var(--radius-sm);
+  background: rgba(108, 180, 224, 0.075);
+}
+
+.lab-done[hidden] {
+  display: none;
+}
+
+.lab-done__title {
+  margin: 0 0 0.4rem;
+  font: 500 0.62rem/1 var(--font-mono);
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+.lab-done p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.lab-done__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.lab-done__actions a,
+.lab-done__actions button {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.74rem;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lab-done__actions a:hover,
+.lab-done__actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 终端 */
+.terminal {
+  grid-area: terminal;
+  display: flex;
+  flex-direction: column;
+  height: clamp(27rem, 58vh, 36rem);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(108, 180, 224, 0.055), transparent 62%),
+    #06080d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 24px 60px -40px rgba(0, 0, 0, 0.9);
+  transition: border-color 0.3s var(--ease);
+}
+
+.terminal:focus-within {
+  border-color: rgba(108, 180, 224, 0.36);
+}
+
+.terminal__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: none;
+  padding: 0.66rem 0.95rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.terminal__title {
+  font: 500 0.68rem/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.terminal__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding: 0.26rem 0.42rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: 400 0.56rem/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+.terminal__tag::before {
+  content: '';
+  width: 0.3rem;
+  height: 0.3rem;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.terminal__screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0.9rem 1rem 0.65rem;
+  cursor: text;
+}
+
+.terminal__out {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font: 400 13px/1.72 var(--font-mono);
+  color: #c2cad8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.terminal__out::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terminal__out::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 99px;
+}
+
+.terminal__row {
+  min-height: 1.72em;
+}
+
+.terminal__row.is-ok {
+  color: #93c7a5;
+}
+
+.terminal__row.is-err {
+  color: #df9b9b;
+}
+
+.terminal__row.is-warn {
+  color: #d9be8b;
+}
+
+.terminal__row.is-dim {
+  color: var(--text-faint);
+}
+
+.terminal__echo {
+  margin-top: 0.55rem;
+  color: var(--text);
+}
+
+.terminal__echo:first-child {
+  margin-top: 0;
+}
+
+.terminal__inline-prompt {
+  color: var(--accent);
+}
+
+.terminal__input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  margin-top: 0.6rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+  font: 400 13px/1.6 var(--font-mono);
+}
+
+.terminal__prompt {
+  flex: none;
+  color: var(--accent);
+}
+
+.terminal__input input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.1rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  caret-color: var(--accent);
+}
+
+.terminal__input input:focus {
+  outline: none;
+}
+
+.terminal__input input::placeholder {
+  color: var(--text-faint);
+}
+
+.terminal__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex: none;
+  padding: 0.45rem 1rem 0.55rem;
+  border-top: 1px solid var(--border);
+  font: 400 0.58rem/1.4 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.terminal__foot-note {
+  margin-left: auto;
+  text-align: right;
+}
+
+/* 无脚本提示：有 JS 时 noscript 不渲染，这里再兜一层布局 */
+.lab noscript {
+  grid-column: 1 / -1;
+}
+
+:root.js .lab noscript {
+  display: none;
+}
+
+.lab-noscript {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 64rem) {
+  .lab {
+    /* 1fr 的最小值等于 auto，终端里的等宽输出会把整列撑到 518px；
+       用 minmax(0, 1fr) 让列宽真正由视口决定，内部再靠 overflow 处理长行。 */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'levels'
+      'terminal'
+      'goals';
+    gap: 1.1rem;
+  }
+
+  .lab-tabs {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .lab-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 第三关常被切在屏幕外。按滚动位置在边缘做渐隐：
+     滚到头就撤掉，最后一关不会一直被压暗。 */
+  .lab-tabs[data-edge='right'] {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.25rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.25rem), transparent);
+  }
+
+  .lab-tabs[data-edge='left'] {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 1.1rem);
+    mask-image: linear-gradient(to right, transparent, #000 1.1rem);
+  }
+
+  .lab-tabs[data-edge='both'] {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 1.1rem,
+      #000 calc(100% - 1.25rem),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 1.1rem,
+      #000 calc(100% - 1.25rem),
+      transparent
+    );
+  }
+
+  .lab-tab {
+    /* 基类是 width:100%（竖排列表），横排时要改为按内容宽度。
+       宽度取视口的 44%：一次露出两关，第三关探出一点边缘，
+       不用猜「右边还有没有」。上限 14rem，平板上不会拉成一整行。 */
+    width: auto;
+    flex: 0 0 clamp(9.25rem, 44%, 14rem);
+    scroll-snap-align: start;
+  }
+
+  .terminal {
+    height: 31rem;
+  }
+}
+
+@media (max-width: 48rem) {
+  .lab-hide-sm {
+    display: none;
+  }
+
+  .terminal {
+    height: 29rem;
+  }
+
+  .terminal__out {
+    font-size: 12.5px;
+  }
+
+  /* iOS 上小于 16px 的输入框会触发自动放大 */
+  .terminal__input,
+  .terminal__input input {
+    font-size: 16px;
+  }
+
+  .terminal__screen {
+    padding-inline: 0.8rem;
+  }
+}
+
+@media (max-width: 24rem) {
+  .terminal {
+    height: 27rem;
+  }
+
+  .terminal__tag {
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-tab,
+  .lab-tab__state,
+  .lab-goals li,
+  .lab-goals__dot,
+  .lab-actions button,
+  .lab-link strong,
+  .terminal {
+    transition: none;
+  }
+}

@@ -1,0 +1,534 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { levels } from '../scripts/lab-engine.js';
+import { getPublishedPosts, postUrl } from '../utils/posts';
+import '../styles/lab.css';
+
+const posts = await getPublishedPosts();
+const byId = new Map(posts.map((post) => [post.id, post]));
+
+/* 每关都挂一篇真实笔记。文章改名或删除时 href 会变成 null，
+   页面隐藏入口，而不是留下死链。 */
+const labs = levels.map((level) => {
+  const post = byId.get(level.article);
+  return {
+    id: level.id,
+    index: level.index,
+    title: level.title,
+    kicker: level.kicker,
+    href: post ? postUrl(post.id) : null,
+    articleTitle: post?.data.title ?? level.articleTitle,
+  };
+});
+
+const initial = labs[0];
+---
+
+<BaseLayout
+  title="实验台"
+  description="三关基于站内笔记的模拟终端：LVM 建卷、firewalld 放行端口、共享目录权限。命令只改浏览器里的状态，不连接服务器。"
+>
+  <div class="wrap">
+    <header class="page-hero lab-hero">
+      <p class="page-hero__eyebrow" data-reveal>LAB / SANDBOX</p>
+      <h1 class="page-hero__title lab-hero__title" data-reveal style="--d:.05s">
+        命令敲一遍，<br />才算跑过。
+      </h1>
+      <p class="page-hero__lede lab-hero__lede" data-reveal style="--d:.12s">
+        三关都取自站内笔记：LVM、firewalld、共享目录权限。
+        终端是浏览器里的模拟器，命令只改本地状态，不连服务器，
+        也不会执行你输入的任何东西。
+      </p>
+      <p class="lab-hero__meta" data-reveal style="--d:.18s">
+        <span>3 个实验</span>
+        <span>3 篇对应笔记</span>
+        <span>纯前端模拟</span>
+      </p>
+    </header>
+
+    <div class="lab" data-lab data-initial={initial.id}>
+      <div class="lab__levels">
+        <p class="lab__label">EXPERIMENTS</p>
+        <div class="lab-tabs" role="tablist" aria-label="实验关卡" data-tabs>
+          {
+            labs.map((lab) => (
+              <button
+                class="lab-tab"
+                type="button"
+                role="tab"
+                id={`lab-tab-${lab.id}`}
+                aria-controls="lab-terminal"
+                aria-selected={lab.id === initial.id ? 'true' : 'false'}
+                tabindex={lab.id === initial.id ? 0 : -1}
+                data-level={lab.id}
+                data-article-href={lab.href ?? ''}
+                data-article-name={lab.articleTitle}
+              >
+                <span class="lab-tab__index">{lab.index}</span>
+                <span class="lab-tab__body">
+                  <span class="lab-tab__kicker">{lab.kicker}</span>
+                  <span class="lab-tab__title">{lab.title}</span>
+                </span>
+                <span class="lab-tab__state" data-level-state aria-hidden="true"></span>
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <section
+        class="terminal"
+        id="lab-terminal"
+        role="tabpanel"
+        aria-labelledby={`lab-tab-${initial.id}`}
+        data-terminal
+      >
+        <header class="terminal__bar">
+          <span class="terminal__title" data-term-title>{initial.index} · {initial.kicker}</span>
+          <span class="terminal__tag">SIMULATED</span>
+        </header>
+        <div class="terminal__screen" data-screen>
+          <div class="terminal__out" data-out role="log" aria-live="polite" aria-label="命令输出"></div>
+          <form class="terminal__input" data-form>
+            <label class="sr-only" for="lab-input">输入命令</label>
+            <span class="terminal__prompt" data-prompt>root@lab:~#</span>
+            <input
+              id="lab-input"
+              data-input
+              type="text"
+              inputmode="text"
+              enterkeyhint="send"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              aria-describedby="lab-input-help"
+            />
+          </form>
+          <p class="sr-only" id="lab-input-help">
+            输入命令后按回车执行。这是模拟终端，不会连接任何服务器。
+          </p>
+        </div>
+        <footer class="terminal__foot">
+          <span class="lab-hide-sm">↑↓ 历史</span>
+          <span class="lab-hide-sm">Tab 补全</span>
+          <span class="lab-hide-sm">Enter 执行</span>
+          <span class="terminal__foot-note">离线模拟 · 不发送网络请求</span>
+        </footer>
+      </section>
+
+      <aside class="lab__goals">
+        <header class="lab-goals__head">
+          <p class="lab__label">OBJECTIVES</p>
+          <span class="lab-goals__count" data-progress>0 / {levels[0].objectives.length}</span>
+        </header>
+        <ol class="lab-goals" data-objectives></ol>
+        <div class="lab-actions">
+          <button type="button" data-hint>给个提示</button>
+          <button type="button" data-reset>重置本关</button>
+        </div>
+        <a
+          class="lab-link"
+          data-article
+          href={initial.href ?? undefined}
+          hidden={!initial.href}
+        >
+          <span>对应笔记</span>
+          <strong data-article-title>{initial.articleTitle}</strong>
+        </a>
+        <div class="lab-done" data-done hidden>
+          <p class="lab-done__title">LAB COMPLETE</p>
+          <p>这一关的目标全部达成。命令已经真正改过状态，不是只看了一遍。</p>
+          <div class="lab-done__actions">
+            <a data-done-article href={initial.href ?? undefined} hidden={!initial.href}>读对应笔记</a>
+            <button type="button" data-next>下一关</button>
+          </div>
+        </div>
+      </aside>
+
+      <noscript>
+        <p class="lab-noscript">
+          实验台需要 JavaScript。所有逻辑都在浏览器本地运行，不会上传任何输入。
+        </p>
+      </noscript>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { levels, createSession, execute, objectiveStatus } from '../scripts/lab-engine.js';
+
+  /* 窄屏的关卡列表是横向滚动的：边缘加一道渐隐，第三关不会像被硬切掉。
+     是否该渐隐由滚动位置决定，滚到头就取消，免得最后一关一直被压暗。 */
+  const paintTabEdge = (tablist) => {
+    const max = tablist.scrollWidth - tablist.clientWidth;
+    if (max <= 1) {
+      tablist.dataset.edge = 'none';
+      return;
+    }
+    const left = tablist.scrollLeft > 1;
+    const right = tablist.scrollLeft < max - 1;
+    tablist.dataset.edge = left && right ? 'both' : left ? 'left' : 'right';
+  };
+
+  /* 方向键 / 点击切到屏幕外的关卡时，把它滚进可视区。
+     不用 scrollIntoView：它可能连带把整页竖向滚一下。 */
+  const revealTab = (tablist, tab) => {
+    if (!tab) return;
+    const max = tablist.scrollWidth - tablist.clientWidth;
+    if (max <= 1) return;
+    const box = tablist.getBoundingClientRect();
+    const rect = tab.getBoundingClientRect();
+    const pad = 8;
+    if (rect.left < box.left + pad) {
+      tablist.scrollLeft += rect.left - box.left - pad;
+    } else if (rect.right > box.right - pad) {
+      tablist.scrollLeft += rect.right - box.right + pad;
+    }
+  };
+
+  /* 旋转屏幕 / 改窗口宽度后滚动余量会变，边缘状态要重算。
+     只挂一个模块级监听，不随页面初始化反复叠加。 */
+  window.addEventListener(
+    'resize',
+    () => {
+      const tablist = document.querySelector('[data-lab] [data-tabs]');
+      if (tablist) paintTabEdge(tablist);
+    },
+    { passive: true },
+  );
+
+  const initLab = () => {
+    const root = document.querySelector('[data-lab]');
+    if (!root || root.dataset.ready === '1') return;
+    root.dataset.ready = '1';
+
+    const levelById = new Map(levels.map((level) => [level.id, level]));
+    const tablist = root.querySelector('[data-tabs]');
+    const tabs = Array.from(root.querySelectorAll('[data-level]'));
+    const tabFor = (id) => tabs.find((tab) => tab.dataset.level === id);
+
+    const terminal = root.querySelector('[data-terminal]');
+    const screen = root.querySelector('[data-screen]');
+    const out = root.querySelector('[data-out]');
+    const form = root.querySelector('[data-form]');
+    const input = root.querySelector('[data-input]');
+    const promptEl = root.querySelector('[data-prompt]');
+    const titleEl = root.querySelector('[data-term-title]');
+    const progressEl = root.querySelector('[data-progress]');
+    const objectivesEl = root.querySelector('[data-objectives]');
+    const hintBtn = root.querySelector('[data-hint]');
+    const resetBtn = root.querySelector('[data-reset]');
+    const articleEl = root.querySelector('[data-article]');
+    const articleTitleEl = root.querySelector('[data-article-title]');
+    const doneEl = root.querySelector('[data-done]');
+    const doneArticle = root.querySelector('[data-done-article]');
+    const nextBtn = root.querySelector('[data-next]');
+
+    const sessions = new Map();
+    const transcripts = new Map();
+    const hashId = decodeURIComponent(location.hash.slice(1));
+    let currentId = levelById.has(hashId)
+      ? hashId
+      : levelById.has(root.dataset.initial)
+        ? root.dataset.initial
+        : levels[0].id;
+    let histPos = -1;
+
+    const sessionFor = (id) => {
+      if (!sessions.has(id)) {
+        const level = levelById.get(id);
+        sessions.set(id, createSession(level));
+        transcripts.set(id, level.intro.map((line) => ({ ...line, type: 'line' })));
+      }
+      return sessions.get(id);
+    };
+
+    const renderLine = (line) => {
+      const row = document.createElement('div');
+      row.className = 'terminal__row' + (line.tone ? ` is-${line.tone}` : '');
+      row.textContent = line.t;
+      return row;
+    };
+
+    const renderEcho = (record) => {
+      const row = document.createElement('div');
+      row.className = 'terminal__row terminal__echo';
+      const prompt = document.createElement('span');
+      prompt.className = 'terminal__inline-prompt';
+      prompt.textContent = record.prompt;
+      row.append(prompt, document.createTextNode(` ${record.cmd}`));
+      return row;
+    };
+
+    const paint = () => {
+      const records = transcripts.get(currentId) ?? [];
+      const fragment = document.createDocumentFragment();
+      for (const record of records) {
+        fragment.append(record.type === 'cmd' ? renderEcho(record) : renderLine(record));
+      }
+      out.replaceChildren(fragment);
+      out.scrollTop = out.scrollHeight;
+    };
+
+    const pushRecords = (records) => {
+      const bucket = transcripts.get(currentId);
+      if (!bucket) return;
+      bucket.push(...records);
+      if (bucket.length > 280) {
+        bucket.splice(0, bucket.length - 280);
+        paint();
+        return;
+      }
+      /* 只追加新行，不整块重绘：role="log" 会把新增节点读出来，
+         每次 replaceChildren 会让读屏器把整段历史重念一遍。 */
+      const fragment = document.createDocumentFragment();
+      for (const record of records) {
+        fragment.append(record.type === 'cmd' ? renderEcho(record) : renderLine(record));
+      }
+      out.append(fragment);
+      out.scrollTop = out.scrollHeight;
+    };
+
+    const updateArticle = (tab) => {
+      const href = tab.dataset.articleHref;
+      if (!href) {
+        articleEl.hidden = true;
+        doneArticle.hidden = true;
+        return;
+      }
+      articleEl.hidden = false;
+      articleEl.href = href;
+      articleTitleEl.textContent = tab.dataset.articleName || '';
+      doneArticle.hidden = false;
+      doneArticle.href = href;
+    };
+
+    const updatePanel = () => {
+      const session = sessionFor(currentId);
+      const status = objectiveStatus(session);
+      const doneCount = status.filter((item) => item.done).length;
+
+      progressEl.textContent = `${doneCount} / ${status.length}`;
+      const items = status.map((item) => {
+        const li = document.createElement('li');
+        if (item.done) li.className = 'is-done';
+        const dot = document.createElement('span');
+        dot.className = 'lab-goals__dot';
+        dot.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        text.textContent = item.label;
+        li.append(dot, text);
+        return li;
+      });
+      objectivesEl.replaceChildren(...items);
+
+      doneEl.hidden = doneCount !== status.length;
+
+      for (const tab of tabs) {
+        const other = sessions.get(tab.dataset.level);
+        const dot = tab.querySelector('[data-level-state]');
+        if (!other || !dot) continue;
+        dot.classList.toggle('is-done', objectiveStatus(other).every((item) => item.done));
+      }
+
+      const index = levels.findIndex((level) => level.id === currentId);
+      const next = levels[index + 1];
+      nextBtn.hidden = !next;
+      if (next) nextBtn.textContent = `下一关 · ${next.title}`;
+    };
+
+    const selectLevel = (id, { focus = false } = {}) => {
+      if (!levelById.has(id)) id = levels[0].id;
+      currentId = id;
+      const level = levelById.get(id);
+      const tab = tabFor(id);
+
+      for (const item of tabs) {
+        const active = item === tab;
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+        item.tabIndex = active ? 0 : -1;
+      }
+
+      promptEl.textContent = level.prompt;
+      titleEl.textContent = `${level.index} · ${level.kicker}`;
+      terminal.setAttribute('aria-labelledby', `lab-tab-${id}`);
+      updateArticle(tab);
+      sessionFor(id);
+      paint();
+      updatePanel();
+      histPos = -1;
+      if (focus) input.focus();
+      revealTab(tablist, tab);
+      paintTabEdge(tablist);
+      if (location.hash.slice(1) !== id) history.replaceState(null, '', `#${id}`);
+    };
+
+    const resetLevel = () => {
+      sessions.delete(currentId);
+      transcripts.delete(currentId);
+      sessionFor(currentId);
+      paint();
+      updatePanel();
+      histPos = -1;
+      input.focus();
+    };
+
+    const runCommand = (raw) => {
+      const cmd = raw.trim();
+      if (!cmd) return;
+      if (cmd === 'reset') {
+        resetLevel();
+        return;
+      }
+
+      const session = sessionFor(currentId);
+      const before = new Set(
+        objectiveStatus(session)
+          .filter((item) => item.done)
+          .map((item) => item.id),
+      );
+      const result = execute(session, cmd);
+
+      if (result.clear) {
+        transcripts.set(currentId, []);
+        paint();
+      } else {
+        const records = [{ type: 'cmd', prompt: session.level.prompt, cmd }];
+        for (const line of result.lines) records.push({ ...line, type: 'line' });
+
+        const after = objectiveStatus(session);
+        const newly = after.filter((item) => item.done && !before.has(item.id));
+        for (const item of newly) {
+          records.push({ type: 'line', t: `[完成] ${item.label}`, tone: 'ok' });
+        }
+        if (newly.length && after.every((item) => item.done)) {
+          records.push({
+            type: 'line',
+            t: '目标全部完成。可以读对应笔记，或者换下一关。',
+            tone: 'dim',
+          });
+        }
+        pushRecords(records);
+        updatePanel();
+      }
+
+      input.value = '';
+      histPos = -1;
+      input.focus();
+    };
+
+    /* 关卡切换：点击 + 方向键，符合 tablist 的键盘习惯。
+       触屏上不自动聚焦输入框：换一关就弹出软键盘，会把刚切过来的
+       关卡说明盖掉；点一下终端再开始输入。 */
+    const finePointer = window.matchMedia('(pointer: fine)');
+    for (const tab of tabs) {
+      tab.addEventListener('click', () =>
+        selectLevel(tab.dataset.level, { focus: finePointer.matches }),
+      );
+    }
+
+    tablist.addEventListener('keydown', (event) => {
+      const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+      if (!keys.includes(event.key)) return;
+      const index = tabs.indexOf(document.activeElement);
+      if (index < 0) return;
+      event.preventDefault();
+      let nextIndex = index;
+      if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = tabs.length - 1;
+      else {
+        const step = event.key === 'ArrowDown' || event.key === 'ArrowRight' ? 1 : -1;
+        nextIndex = (index + step + tabs.length) % tabs.length;
+      }
+      const next = tabs[nextIndex];
+      next.focus();
+      selectLevel(next.dataset.level);
+    });
+
+    /* 终端输入 */
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      runCommand(input.value);
+    });
+
+    screen.addEventListener('click', (event) => {
+      if (event.target.closest('a, button')) return;
+      if (!window.getSelection()?.isCollapsed) return;
+      input.focus();
+    });
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const list = sessionFor(currentId).history;
+        if (!list.length) return;
+        histPos = histPos === -1 ? list.length - 1 : Math.max(0, histPos - 1);
+        input.value = list[histPos];
+        input.setSelectionRange(input.value.length, input.value.length);
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const list = sessionFor(currentId).history;
+        if (histPos === -1) return;
+        histPos += 1;
+        if (histPos >= list.length) {
+          histPos = -1;
+          input.value = '';
+          return;
+        }
+        input.value = list[histPos];
+        input.setSelectionRange(input.value.length, input.value.length);
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        const value = input.value.trim();
+        if (!value) return;
+        event.preventDefault();
+        const names = [...Object.keys(sessionFor(currentId).level.commands), 'clear', 'help', 'hint'];
+        const matches = names.filter((name) => name.startsWith(value) && name !== value);
+        if (matches.length === 1) {
+          input.value = matches[0] + (matches[0] === 'help' ? '' : ' ');
+        } else if (matches.length > 1) {
+          pushRecords([{ type: 'line', t: matches.sort().join('   '), tone: 'dim' }]);
+        }
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'l') {
+        event.preventDefault();
+        transcripts.set(currentId, []);
+        paint();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        input.value = '';
+        histPos = -1;
+      }
+    });
+
+    hintBtn.addEventListener('click', () => runCommand('hint'));
+    resetBtn.addEventListener('click', resetLevel);
+
+    tablist.addEventListener('scroll', () => paintTabEdge(tablist), { passive: true });
+    selectLevel(currentId);
+    paintTabEdge(tablist);
+    // 字体换入后 tab 宽度会变，滚动余量跟着变
+    document.fonts?.ready.then(() => paintTabEdge(tablist));
+
+    nextBtn.addEventListener('click', () => {
+      const index = levels.findIndex((level) => level.id === currentId);
+      const next = levels[index + 1];
+      if (next) selectLevel(next.id, { focus: finePointer.matches });
+    });
+
+    selectLevel(currentId);
+  };
+
+  document.addEventListener('astro:page-load', initLab);
+  if (document.readyState !== 'loading') initLab();
+</script>

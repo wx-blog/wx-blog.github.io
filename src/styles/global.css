@@ -8040,3 +8040,48 @@ html.is-scrolling .card {
 .hero__scroll {
   color: var(--text-muted);
 }
+
+/* ---------- 33.14 页头放下第四个导航项 ----------
+
+   加了「实验」之后，390px 上一行要装：站名 107 + 间隔 14 + 导航 282 = 404，
+   视口只有 350（320px 上更紧，289 对 280）。导航项的左右内边距原本是
+   0.7rem，四字链接其实用不到那么宽 —— 收到 0.4rem，字号降到 0.78rem，
+   间隔压到 0.15rem，390 还剩约 40px 余量。
+   320px 再收一档站名与图标，仍保留文字标识，不退回「只剩一个星」的旧样式。 */
+
+@media (max-width: 30rem) {
+  .site-header__inner {
+    gap: 0.5rem;
+  }
+
+  .site-nav {
+    gap: 0.15rem;
+  }
+
+  .site-nav a {
+    padding: 0.35rem 0.4rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 24rem) {
+  .brand {
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .brand__glyph {
+    width: 16px;
+    height: 16px;
+  }
+
+  .site-nav a {
+    padding: 0.3rem 0.32rem;
+    font-size: 0.74rem;
+  }
+
+  .site-nav .nav-search {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+}

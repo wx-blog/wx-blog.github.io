@@ -106,6 +106,15 @@ const paths = PATHS.map((path) => {
       </p>
     </header>
 
+    <a class="lab-entry glass" href="/lab/" data-reveal>
+      <span class="lab-entry__tag">LAB</span>
+      <span class="lab-entry__body">
+        <strong>读完别急着走，把命令敲一遍</strong>
+        <span>三关模拟终端：LVM 建卷、firewalld 放行端口、共享目录权限。命令会真的改变终端里的状态。</span>
+      </span>
+      <span class="lab-entry__arrow" aria-hidden="true">↗</span>
+    </a>
+
     <div class="path-list">
       {
         paths.map((path, i) => (
@@ -139,3 +148,75 @@ const paths = PATHS.map((path) => {
     </p>
   </div>
 </BaseLayout>
+
+<style>
+  .lab-entry {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: clamp(1.5rem, 3vw, 2.25rem);
+    padding: 1rem 1.15rem;
+    color: inherit;
+    text-decoration: none;
+    transition:
+      border-color 0.25s var(--ease),
+      background-color 0.25s var(--ease);
+  }
+
+  .lab-entry:hover {
+    border-color: var(--glass-border-hover);
+    background: var(--glass-bg-hover);
+  }
+
+  .lab-entry__tag {
+    flex: none;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--accent);
+    font: 500 0.58rem/1 var(--font-mono);
+    letter-spacing: 0.16em;
+  }
+
+  .lab-entry__body {
+    display: grid;
+    gap: 0.22rem;
+    min-width: 0;
+  }
+
+  .lab-entry__body strong {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .lab-entry__body span {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+  }
+
+  .lab-entry__arrow {
+    flex: none;
+    margin-left: auto;
+    color: var(--text-faint);
+    font-size: 1rem;
+    transition: color 0.2s var(--ease);
+  }
+
+  .lab-entry:hover .lab-entry__arrow {
+    color: var(--accent);
+  }
+
+  @media (max-width: 30rem) {
+    .lab-entry__arrow {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lab-entry,
+    .lab-entry__arrow {
+      transition: none;
+    }
+  }
+</style>
