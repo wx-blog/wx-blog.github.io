@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
 import Spark from '../components/Spark.astro';
 import { collectTags, getPublishedPosts, postUrl, tagUrl } from '../utils/posts';
+import '../styles/lab.css';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 5);
@@ -162,7 +163,7 @@ const recommended =
     </div>
 
     <div class="hero__foot">
-      <a class="hero__scroll" href="#latest">
+      <a class="hero__scroll" href="#lab">
         <span class="mono-label">SCROLL</span>
         <span class="hero__scroll-arrow" aria-hidden="true">↓</span>
       </a>
@@ -174,10 +175,96 @@ const recommended =
     </div>
   </section>
 
+  <!--
+    实验台预览：把 /lab/ 的第一关原样搬一小块到首页。
+    ------------------------------------------------------------
+    为什么不是在首页放一张「去实验台」的链接卡：
+    链接卡只能告诉人「有这个东西」，而实验台的价值是敲下去之后
+    lsblk 真的多出一行。这里直接挂第一关的同一套状态机
+    （lab-engine.js 的 levels[0]），首页和 /lab/ 的输出不会各写一份、
+    慢慢对不上；首页只少一个目标清单，命令集完全一样。
+    终端只读写内存里的 state，不发请求，也不执行输入。
+    首屏、文章卡片和标签区都不动，这一段是插进去的一层。
+  -->
+  <section class="section" id="lab">
+    <div class="wrap">
+      <div class="section__head section__head--row">
+        <p class="section__eyebrow" data-reveal><span>01</span> / SANDBOX</p>
+        <h2 class="section__title" data-reveal style="--d:.05s">不用装环境，先跑一条</h2>
+        <a class="section__more" href="/lab/">完整实验台 ↗</a>
+      </div>
+
+      <div class="lab-teaser" data-reveal>
+        <div class="lab-teaser__intro">
+          <p class="lab-teaser__kicker mono-label">LAB · 01 · LVM</p>
+          <h3 class="lab-teaser__title">建一个卷，看它出现在 lsblk 里</h3>
+          <p class="lab-teaser__text">
+            把空盘 /dev/sdb 做成物理卷、建卷组、切一个 5G 的逻辑卷。命令只改这个页面里的状态：不连接服务器，也不会执行你输入的任何东西。
+          </p>
+          <p class="lab-teaser__tags">
+            <span>3 关</span>
+            <span>3 篇对应笔记</span>
+            <span>纯前端模拟</span>
+          </p>
+          <a class="lab-teaser__go" href="/lab/">
+            三关都走一遍 <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+
+        <section class="terminal lab-teaser__term" data-teaser aria-label="LVM 模拟终端">
+          <header class="terminal__bar">
+            <span class="terminal__title">01 · LVM</span>
+            <span class="terminal__tag">SIMULATED</span>
+          </header>
+
+          <div class="lab-teaser__quick" data-quick role="group" aria-label="快捷命令">
+            <button type="button" data-run="lsblk" title="列出块设备">lsblk</button>
+            <button type="button" data-run="pvcreate /dev/sdb" title="把 /dev/sdb 做成物理卷">pvcreate /dev/sdb</button>
+            <button type="button" data-run="vgcreate vg_data /dev/sdb" title="创建卷组 vg_data">
+              vgcreate vg_data /dev/sdb
+            </button>
+            <button type="button" data-run="lvcreate -L 5G -n lv_web vg_data" title="切一个 5G 的逻辑卷">
+              lvcreate -L 5G -n lv_web vg_data
+            </button>
+          </div>
+
+          <div class="terminal__screen" data-screen>
+            <div class="terminal__out" data-out role="log" aria-live="polite" aria-label="命令输出"></div>
+            <form class="terminal__input" data-form>
+              <label class="sr-only" for="teaser-input">输入命令</label>
+              <span class="terminal__prompt">root@lab:~#</span>
+              <input
+                id="teaser-input"
+                data-input
+                type="text"
+                inputmode="text"
+                enterkeyhint="send"
+                autocomplete="off"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
+                placeholder="输入命令，回车执行"
+                aria-describedby="teaser-help"
+              />
+            </form>
+            <p class="sr-only" id="teaser-help">
+              输入命令后按回车执行。这是模拟终端，不会连接任何服务器。
+            </p>
+          </div>
+
+          <footer class="terminal__foot">
+            <a class="lab-teaser__more" data-teaser-more href="/lab/" hidden>在实验台继续 →</a>
+            <span class="terminal__foot-note">离线模拟 · 不发送网络请求</span>
+          </footer>
+        </section>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="latest">
     <div class="wrap">
       <div class="section__head section__head--row">
-        <p class="section__eyebrow" data-reveal><span>01</span> / RECENT</p>
+        <p class="section__eyebrow" data-reveal><span>02</span> / RECENT</p>
         <h2 class="section__title" data-reveal style="--d:.05s">最近整理的几篇</h2>
         <a class="section__more" href="/blog/">全部文章 ↗</a>
       </div>
@@ -192,7 +279,7 @@ const recommended =
         <div class="wrap">
           <div class="section__head section__head--row">
             <p class="section__eyebrow" data-reveal>
-              <span>02</span> / INDEX
+              <span>03</span> / INDEX
             </p>
             <h2 class="section__title" data-reveal style="--d:.05s">
               按标签找
@@ -228,4 +315,378 @@ const recommended =
       </div>
     </div>
   </section>
+
+  <script>
+    import { levels, createSession, execute, objectiveStatus } from '../scripts/lab-engine.js';
+
+    /* 快捷命令在手机上单行横滑，边缘按滚动位置渐隐。
+       和 /lab/ 的关卡列表同一套判断：滚到头就撤掉渐隐，最后一个命令不会被一直压暗。 */
+    const paintQuickEdge = (list) => {
+      const max = list.scrollWidth - list.clientWidth;
+      if (max <= 1) {
+        list.dataset.edge = 'none';
+        return;
+      }
+      const left = list.scrollLeft > 1;
+      const right = list.scrollLeft < max - 1;
+      list.dataset.edge = left && right ? 'both' : left ? 'left' : 'right';
+    };
+
+    window.addEventListener(
+      'resize',
+      () => {
+        const list = document.querySelector('[data-teaser] [data-quick]');
+        if (list) paintQuickEdge(list);
+      },
+      { passive: true },
+    );
+
+    /* 首页只挂第一关，命令表和 /lab/ 是同一份 lab-engine。
+       初始化和 /lab/ 一样要防重入：ClientRouter 切回首页时脚本会再跑一遍。 */
+    const initTeaser = () => {
+      const root = document.querySelector('[data-teaser]');
+      if (!root || root.dataset.ready === '1') return;
+      root.dataset.ready = '1';
+
+      const level = levels[0];
+      const session = createSession(level);
+      const out = root.querySelector('[data-out]');
+      const form = root.querySelector('[data-form]');
+      const input = root.querySelector('[data-input]');
+      const screen = root.querySelector('[data-screen]');
+      const more = root.querySelector('[data-teaser-more]');
+      const chips = root.querySelectorAll('[data-run]');
+      const quick = root.querySelector('[data-quick]');
+      const finePointer = window.matchMedia('(pointer: fine)');
+      let histPos = -1;
+
+      const renderLine = (line) => {
+        const row = document.createElement('div');
+        row.className = 'terminal__row' + (line.tone ? ` is-${line.tone}` : '');
+        row.textContent = line.t;
+        return row;
+      };
+
+      const renderEcho = (cmd) => {
+        const row = document.createElement('div');
+        row.className = 'terminal__row terminal__echo';
+        const prompt = document.createElement('span');
+        prompt.className = 'terminal__inline-prompt';
+        prompt.textContent = level.prompt;
+        row.append(prompt, document.createTextNode(` ${cmd}`));
+        return row;
+      };
+
+      /* 只追加新行：role="log" 会把新增节点读出来，整块重绘等于把历史重念一遍 */
+      const append = (records) => {
+        const fragment = document.createDocumentFragment();
+        for (const record of records) {
+          fragment.append(record.type === 'cmd' ? renderEcho(record.cmd) : renderLine(record));
+        }
+        out.append(fragment);
+        out.scrollTop = out.scrollHeight;
+      };
+
+      /* 第一行「# 实验台 01 · LVM」和终端标题重复，首页这边省掉 */
+      append(level.intro.slice(1).map((line) => ({ ...line, type: 'line' })));
+
+      const run = (raw, { focus = true } = {}) => {
+        const cmd = String(raw ?? '').trim();
+        if (!cmd) return;
+
+        const before = new Set(
+          objectiveStatus(session)
+            .filter((item) => item.done)
+            .map((item) => item.id),
+        );
+        const result = execute(session, cmd);
+
+        if (result.clear) {
+          out.replaceChildren();
+        } else {
+          const records = [{ type: 'cmd', cmd }];
+          for (const line of result.lines) records.push({ ...line, type: 'line' });
+
+          const after = objectiveStatus(session);
+          const newly = after.filter((item) => item.done && !before.has(item.id));
+          for (const item of newly) {
+            records.push({ type: 'line', t: `[完成] ${item.label}`, tone: 'ok' });
+          }
+          if (newly.length && after.every((item) => item.done)) {
+            records.push({
+              type: 'line',
+              t: '这一关的目标全部完成。还有 firewalld 和共享目录权限两关。',
+              tone: 'dim',
+            });
+          }
+          append(records);
+
+          /* 卷建出来之后再给「剩下的去实验台走」的入口，不提前催 */
+          if (more.hidden && after.some((item) => item.id === 'lv' && item.done)) {
+            more.hidden = false;
+          }
+        }
+
+        input.value = '';
+        histPos = -1;
+        if (focus && finePointer.matches) input.focus();
+      };
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        run(input.value);
+      });
+
+      for (const chip of chips) {
+        chip.addEventListener('click', () => run(chip.dataset.run));
+      }
+
+      quick.addEventListener('scroll', () => paintQuickEdge(quick), { passive: true });
+      paintQuickEdge(quick);
+      document.fonts?.ready.then(() => paintQuickEdge(quick));
+
+      screen.addEventListener('click', (event) => {
+        if (event.target.closest('a, button')) return;
+        if (!finePointer.matches) return;
+        if (!window.getSelection()?.isCollapsed) return;
+        input.focus();
+      });
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+          if (!session.history.length) return;
+          event.preventDefault();
+          if (event.key === 'ArrowUp') {
+            histPos =
+              histPos === -1 ? session.history.length - 1 : Math.max(0, histPos - 1);
+          } else {
+            if (histPos === -1) return;
+            histPos += 1;
+            if (histPos >= session.history.length) {
+              histPos = -1;
+              input.value = '';
+              return;
+            }
+          }
+          input.value = session.history[histPos];
+          input.setSelectionRange(input.value.length, input.value.length);
+          return;
+        }
+
+        if (event.key === 'Escape') {
+          input.value = '';
+          histPos = -1;
+        }
+      });
+    };
+
+    document.addEventListener('astro:page-load', initTeaser);
+    if (document.readyState !== 'loading') initTeaser();
+  </script>
+
+  <style>
+    /* 实验台预览：左边说明，右边终端。
+       材质跟文章卡片同一套（1px 边框 + 轻渐变底），
+       不为「更炫」再造一层玻璃。 */
+    .lab-teaser {
+      display: grid;
+      /* 用命名区域而不是让终端自己 grid-area：lab.css 里 .terminal 带着
+         grid-area: terminal（给 /lab/ 的三列布局用的），在这里会把终端顶到
+         隐式列上，左侧说明列被挤成 0 宽。这里显式给两块分配位置。 */
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      grid-template-areas: 'intro term';
+      gap: clamp(1.4rem, 1rem + 2.2vw, 3rem);
+      padding: clamp(1.2rem, 0.9rem + 1.3vw, 1.9rem);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(120% 90% at 0% 0%, rgba(108, 180, 224, 0.07), transparent 58%),
+        radial-gradient(90% 80% at 100% 100%, rgba(185, 167, 255, 0.045), transparent 62%),
+        rgba(255, 255, 255, 0.02);
+    }
+
+    .lab-teaser__intro {
+      grid-area: intro;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      min-width: 0;
+      padding: 0.2rem 0;
+    }
+
+    .lab-teaser__kicker {
+      margin: 0;
+      color: var(--text-faint);
+    }
+
+    .lab-teaser__title {
+      margin: 0;
+      font-size: clamp(1.28rem, 1.1rem + 0.6vw, 1.55rem);
+      font-weight: 500;
+      line-height: 1.4;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .lab-teaser__text {
+      margin: 0;
+      max-width: 30rem;
+      font-size: 0.9rem;
+      line-height: 1.85;
+      color: var(--text-muted);
+    }
+
+    .lab-teaser__tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      letter-spacing: 0.06em;
+      color: var(--text-faint);
+    }
+
+    .lab-teaser__tags span {
+      padding: 0.22rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+
+    .lab-teaser__go {
+      margin-top: auto;
+      align-self: flex-start;
+      padding-bottom: 0.2rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      transition:
+        color 0.2s var(--ease),
+        border-color 0.2s var(--ease);
+    }
+
+    .lab-teaser__go:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .lab-teaser__term {
+      grid-area: term;
+      height: 27rem;
+    }
+
+    /* 快捷命令：点了就填进终端执行，不是复制按钮。
+       命令都很长，窄屏让它换行，不做横向滚动——横滚在页中段很容易被误当成轮播。 */
+    .lab-teaser__quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      flex: none;
+      padding: 0.6rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .lab-teaser__quick button {
+      padding: 0.28rem 0.46rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+      font: 400 0.64rem/1.5 var(--font-mono);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition:
+        color 0.2s var(--ease),
+        border-color 0.2s var(--ease),
+        background 0.2s var(--ease);
+    }
+
+    .lab-teaser__quick button:hover {
+      border-color: rgba(108, 180, 224, 0.4);
+      background: rgba(108, 180, 224, 0.07);
+      color: var(--accent);
+    }
+
+    .lab-teaser__more {
+      color: var(--accent);
+    }
+
+    @media (max-width: 64rem) {
+      .lab-teaser {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          'intro'
+          'term';
+      }
+
+      .lab-teaser__title,
+      .lab-teaser__text {
+        max-width: none;
+      }
+
+      .lab-teaser__term {
+        height: 26rem;
+      }
+    }
+
+    @media (max-width: 48rem) {
+      .lab-teaser__term {
+        height: 25rem;
+      }
+
+      /* 手机上四行命令会把输出区压到只剩四行字。
+         改成单行横滑，边缘按滚动位置渐隐，和 /lab/ 的关卡列表同一套做法。 */
+      .lab-teaser__quick {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-inline: 0.8rem;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+      }
+
+      .lab-teaser__quick::-webkit-scrollbar {
+        display: none;
+      }
+
+      .lab-teaser__quick button {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+      }
+
+      .lab-teaser__quick[data-edge='right'] {
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.3rem), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - 1.3rem), transparent);
+      }
+
+      .lab-teaser__quick[data-edge='left'] {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 1.1rem);
+        mask-image: linear-gradient(to right, transparent, #000 1.1rem);
+      }
+
+      .lab-teaser__quick[data-edge='both'] {
+        -webkit-mask-image: linear-gradient(
+          to right,
+          transparent,
+          #000 1.1rem,
+          #000 calc(100% - 1.3rem),
+          transparent
+        );
+        mask-image: linear-gradient(
+          to right,
+          transparent,
+          #000 1.1rem,
+          #000 calc(100% - 1.3rem),
+          transparent
+        );
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .lab-teaser__go,
+      .lab-teaser__quick button {
+        transition: none;
+      }
+    }
+  </style>
 </BaseLayout>
