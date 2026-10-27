@@ -3,11 +3,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import PostList from '../components/PostList.astro';
 import Spark from '../components/Spark.astro';
 import { collectTags, getPublishedPosts, postUrl, tagUrl } from '../utils/posts';
+import { levels } from '../scripts/lab-engine.js';
 import '../styles/lab.css';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 5);
 const tags = collectTags(posts);
+
+/* 首页预览的是第一关，目标文案直接从引擎取，避免和 /lab/ 两处维护。
+   渲染成静态 DOM 而不是运行时创建：Astro 的 scoped style 只认
+   data-astro-cid-* 属性，JS 造出来的节点没有这个属性，圆点会缩成 0 宽。 */
+const labGoals = levels[0].objectives;
 
 /* 首屏展示的技术方向：取标签里排在前面的几个。
    为什么用标签而不是手写一份方向清单：
@@ -206,9 +212,17 @@ const recommended =
             <span>3 篇对应笔记</span>
             <span>纯前端模拟</span>
           </p>
-          <a class="lab-teaser__go" href="/lab/">
-            三关都走一遍 <span aria-hidden="true">↗</span>
-          </a>
+          <ol class="lab-teaser__goals" data-goals aria-label="本关目标">
+            {
+              labGoals.map((item) => (
+                <li data-id={item.id}>
+                  <span class="lab-teaser__goal-dot" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </li>
+              ))
+            }
+          </ol>
+          <a class="lab-teaser__go" href="/lab/">三关都走一遍 <span aria-hidden="true">↗</span></a>
         </div>
 
         <section class="terminal lab-teaser__term" data-teaser aria-label="LVM 模拟终端">
@@ -357,8 +371,20 @@ const recommended =
       const more = root.querySelector('[data-teaser-more]');
       const chips = root.querySelectorAll('[data-run]');
       const quick = root.querySelector('[data-quick]');
+      /* 清单在卡片左栏，和终端是兄弟节点，不能从终端里查 */
+      const goals = root.closest('.lab-teaser')?.querySelector('[data-goals]');
       const finePointer = window.matchMedia('(pointer: fine)');
       let histPos = -1;
+
+      /* 清单是构建期渲染的，这里只负责把完成状态勾上 */
+      const goalItems = new Map(
+        [...(goals?.querySelectorAll('li') ?? [])].map((row) => [row.dataset.id, row]),
+      );
+      const paintGoals = () => {
+        for (const item of objectiveStatus(session)) {
+          goalItems.get(item.id)?.classList.toggle('is-done', item.done);
+        }
+      };
 
       const renderLine = (line) => {
         const row = document.createElement('div');
@@ -389,6 +415,7 @@ const recommended =
 
       /* 第一行「# 实验台 01 · LVM」和终端标题重复，首页这边省掉 */
       append(level.intro.slice(1).map((line) => ({ ...line, type: 'line' })));
+      paintGoals();
 
       const run = (raw, { focus = true } = {}) => {
         const cmd = String(raw ?? '').trim();
@@ -400,6 +427,7 @@ const recommended =
             .map((item) => item.id),
         );
         const result = execute(session, cmd);
+        paintGoals();
 
         if (result.clear) {
           out.replaceChildren();
@@ -553,8 +581,60 @@ const recommended =
       border-radius: 999px;
     }
 
+    /* 目标清单贴住卡片底部：上半是「这是什么」，下半是「你走到哪了」。
+       条目文字取自 lab-engine，改关卡时首页不用跟着改。 */
+    .lab-teaser__goals {
+      display: flex;
+      flex-direction: column;
+      gap: 0.42rem;
+      margin: auto 0 0;
+      padding: 0;
+      list-style: none;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      color: var(--text-muted);
+    }
+
+    .lab-teaser__goals li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+
+    .lab-teaser__goal-dot {
+      display: grid;
+      place-items: center;
+      flex: none;
+      width: 0.72rem;
+      height: 0.72rem;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      transition: border-color 0.25s var(--ease);
+    }
+
+    .lab-teaser__goal-dot::after {
+      content: '';
+      width: 0.3rem;
+      height: 0.3rem;
+      border-radius: 50%;
+      background: var(--accent);
+      transform: scale(0);
+      transition: transform 0.25s var(--ease);
+    }
+
+    .lab-teaser__goals li.is-done .lab-teaser__goal-dot {
+      border-color: rgba(108, 180, 224, 0.5);
+    }
+
+    .lab-teaser__goals li.is-done .lab-teaser__goal-dot::after {
+      transform: scale(1);
+    }
+
     .lab-teaser__go {
-      margin-top: auto;
+      margin-top: 0.15rem;
       align-self: flex-start;
       padding-bottom: 0.2rem;
       border-bottom: 1px solid var(--border);
@@ -684,6 +764,8 @@ const recommended =
 
     @media (prefers-reduced-motion: reduce) {
       .lab-teaser__go,
+      .lab-teaser__goal-dot,
+      .lab-teaser__goal-dot::after,
       .lab-teaser__quick button {
         transition: none;
       }
